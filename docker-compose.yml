@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    container_name: trade-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - bot-data:/app/data
+      - bot-logs:/app/logs
+    env_file:
+      - .env
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: trade-frontend
+    ports:
+      - "80:80"
+    environment:
+      # Use your server public IP or domain here
+      - REACT_APP_API_URL=http://your-server-ip:8000
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  bot-data:
+  bot-logs:
