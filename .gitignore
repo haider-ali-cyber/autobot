@@ -1,0 +1,20 @@
+# Python dependencies
+venv/
+__pycache__/
+*.pyc
+logs/
+*.log
+
+# Node (Frontend)
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+
+# Sensitive Trading Data
+.env
+trading_bot.db
+trading_bot.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
