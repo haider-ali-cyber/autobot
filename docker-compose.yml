@@ -6,13 +6,14 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: trade-backend
-    ports:
-      - "8000:8000"
+    # Removed ports: "8000:8000" - handled by Dokploy proxy
     volumes:
       - bot-data:/app/data
       - bot-logs:/app/logs
     env_file:
       - .env
+    networks:
+      - bot-network
     restart: always
 
   frontend:
@@ -20,14 +21,19 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: trade-frontend
-    ports:
-      - "80:80"
+    # Removed ports: "80:80" - handled by Dokploy proxy
     environment:
-      # Use your server public IP or domain here
-      - REACT_APP_API_URL=http://your-server-ip:8000
+      # Internal URL for communication within Docker network
+      - REACT_APP_API_URL=http://backend:8000
     depends_on:
       - backend
+    networks:
+      - bot-network
     restart: always
+
+networks:
+  bot-network:
+    driver: bridge
 
 volumes:
   bot-data:
