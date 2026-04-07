@@ -3,17 +3,16 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Copy package files
-COPY frontend/package*.json ./
+# Copy package files (already inside /frontend folder in context)
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy frontend source code
-COPY frontend/ .
+COPY . .
 
 # Build the app (Production mode)
-# REACT_APP_API_URL will be passed during build or as env var
 RUN npm run build
 
 # Stage 2: Serve the files using Nginx
