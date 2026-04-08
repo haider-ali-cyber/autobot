@@ -214,7 +214,7 @@ export default function App() {
       if (posArr) setPositions(posArr);
       if (phArr) setPnlHistory(phArr);
       if (drObj) setDrawdown(drObj);
-      if (SettObj) setSettings(prev => ({...prev, ...SettObj}));
+      if (settObj) setSettings(prev => ({...prev, ...settObj}));
       
       const mData = await get(`${API}/market/news`);
       if (mData) setMarketData(mData);
