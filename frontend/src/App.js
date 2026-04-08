@@ -181,9 +181,7 @@ export default function App() {
       paper_trading: true,
   });
 
-  const [manualTrade, setManualTrade] = useState({
-      symbol: '', side: 'Buy', qty: 0.01, sl: 0, tp: 0
-  });
+  const [manualTrade, setManualTrade] = useState({ symbol: '', side: 'Buy', usdt: 0, leverage: 1, sl: 0, tp: 0 });
   const [loadingManual, setLoadingManual] = useState(false);
 
   const axiosConfig = useMemo(() => ({
@@ -407,8 +405,12 @@ export default function App() {
                       </select>
                     </div>
                     <div>
-                      <label style={{ fontSize: 10 }}>Quantity</label>
-                      <input type="number" step="0.001" value={manualTrade.qty} onChange={e => setManualTrade({...manualTrade, qty: parseFloat(e.target.value)})} />
+                      <label style={{ fontSize: 10 }}>Margin (USDT)</label>
+                      <input type="number" step="1" value={manualTrade.usdt || ''} onChange={e => setManualTrade({...manualTrade, usdt: parseFloat(e.target.value) || 0})} placeholder="$ Mgn" />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10 }}>Leverage (x)</label>
+                      <input type="number" step="1" value={manualTrade.leverage || ''} onChange={e => setManualTrade({...manualTrade, leverage: parseFloat(e.target.value) || 1})} placeholder="Lvg" />
                     </div>
                     <div>
                       <label style={{ fontSize: 10 }}>Stop Loss</label>
@@ -428,7 +430,8 @@ export default function App() {
                         await axios.post(`${API}/trade/manual`, {
                           symbol: manualTrade.symbol,
                           side: manualTrade.side,
-                          qty: manualTrade.qty,
+                          usdt: manualTrade.usdt,
+                          leverage: manualTrade.leverage,
                           stop_loss: manualTrade.sl,
                           take_profit: manualTrade.tp
                         }, axiosConfig);

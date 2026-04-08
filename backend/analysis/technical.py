@@ -213,6 +213,7 @@ def full_analysis(candles: List[Dict]) -> Optional[Dict]:
     vol = volume_analysis(df)
     trend = detect_trend(df)
     regime_data = detect_market_regime(df)
+    vwap_val = vwap(df)
 
     return {
         'close': close,
@@ -235,6 +236,7 @@ def full_analysis(candles: List[Dict]) -> Optional[Dict]:
         'ema9': round(float(ema(df, 9).iloc[-1]), 4),
         'ema21': round(float(ema(df, 21).iloc[-1]), 4),
         'ema50': round(float(ema(df, 50).iloc[-1]), 4),
+        'vwap': round(float(vwap_val.iloc[-1]), 4),
         'support': round(sr['support'], 4),
         'resistance': round(sr['resistance'], 4),
         'fib_618': round(fib['level_618'], 4),

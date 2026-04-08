@@ -90,50 +90,43 @@ class RiskManager:
     def calculate_sl_tp(self, entry_price: float, side: str,
                         atr: float) -> Dict[str, float]:
         """
-        ATR-based SL/TP capped at $0.6 SL and $0.4-$1.0 TP range.
-        Uses 1.5x ATR for SL, 2.5x ATR for TP — but always enforces
-        the dollar caps.
+        Pure ATR-based SL/TP (Dynamic Volatility).
+        Uses 1.5x ATR for Stop Loss and 2.5x ATR for Take Profit.
+        Quantity sizing will adjust math later to keep dollar risk fixed.
         """
         atr_sl_mult = 1.5
         atr_tp_mult = 2.5
 
-        if side == 'Buy':
-            raw_sl = entry_price - atr * atr_sl_mult
-            raw_tp = entry_price + atr * atr_tp_mult
-        else:
-            raw_sl = entry_price + atr * atr_sl_mult
-            raw_tp = entry_price - atr * atr_tp_mult
+        # Protect against 0 ATR in edge cases
+        safe_atr = atr if atr > 0 else (entry_price * 0.005)
 
-        qty_for_check = 1.0
         if side == 'Buy':
-            sl_loss_per_unit = entry_price - raw_sl
-            tp_gain_per_unit = raw_tp - entry_price
+            raw_sl = entry_price - safe_atr * atr_sl_mult
+            raw_tp = entry_price + safe_atr * atr_tp_mult
+            sl_dist = entry_price - raw_sl
+            tp_dist = raw_tp - entry_price
         else:
-            sl_loss_per_unit = raw_sl - entry_price
-            tp_gain_per_unit = entry_price - raw_tp
+            raw_sl = entry_price + safe_atr * atr_sl_mult
+            raw_tp = entry_price - safe_atr * atr_tp_mult
+            sl_dist = raw_sl - entry_price
+            tp_dist = entry_price - raw_tp
 
-        # Enforce hard SL cap: price distance adjusted so loss at qty=1 is ≤ $0.6
-        if sl_loss_per_unit > self.max_sl:
-            sl_loss_per_unit = self.max_sl
-            if side == 'Buy':
-                raw_sl = entry_price - sl_loss_per_unit
-            else:
-                raw_sl = entry_price + sl_loss_per_unit
-
-        # Enforce TP range $0.4-$1.0 (assuming qty=1 unit for reference)
-        tp_gain_per_unit = max(self.min_tp, min(self.max_tp, tp_gain_per_unit))
-        if side == 'Buy':
-            raw_tp = entry_price + tp_gain_per_unit
-        else:
-            raw_tp = entry_price - tp_gain_per_unit
+        # We keep the min_tp / max_tp checks ONLY as a safety bound for extreme low/high volatility
+        # but let ATR drive the core distance.
+        if tp_dist < self.min_tp:
+            tp_dist = self.min_tp
+            raw_tp = entry_price + tp_dist if side == 'Buy' else entry_price - tp_dist
+            
+        if tp_dist > self.max_tp * 2: # Give it more breathing room for breakouts
+            tp_dist = self.max_tp * 2
+            raw_tp = entry_price + tp_dist if side == 'Buy' else entry_price - tp_dist
 
         return {
             'stop_loss': round(raw_sl, 4),
             'take_profit': round(raw_tp, 4),
-            'sl_distance': round(sl_loss_per_unit, 4),
-            'tp_distance': round(tp_gain_per_unit, 4),
-            'rr_ratio': round(tp_gain_per_unit / sl_loss_per_unit, 2)
-                        if sl_loss_per_unit > 0 else 0,
+            'sl_distance': round(sl_dist, 4),
+            'tp_distance': round(tp_dist, 4),
+            'rr_ratio': round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
         }
 
     def get_micro_tp_levels(self, entry_price: float, side: str) -> list:

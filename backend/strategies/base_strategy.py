@@ -272,6 +272,20 @@ class ScalpingStrategy(BaseStrategy):
         elif candle_result.get('signal') == 'SELL':
             sell_score += candle_result.get('strength', 0) * 0.5
 
+        vwap = indicators.get('vwap', 0)
+        
+        # VWAP Filter (Institutional Confirmation)
+        vwap_filter_ok = True
+        if vwap > 0:
+            if close < vwap:  # Bearish territory below VWAP
+                if rsi > 30 and buy_score > 0: # If it's a weak buy signal below VWAP, discard it
+                    buy_score *= 0.5  # Penalize buy strength
+                    reasons.append("Warning: Price below VWAP")
+            elif close > vwap: # Bullish territory above VWAP
+                if rsi < 70 and sell_score > 0:
+                    sell_score *= 0.5
+                    reasons.append("Warning: Price above VWAP")
+
         if buy_score >= 0.6 and buy_score > sell_score:
             return Signal(SignalType.BUY, min(buy_score, 1.0), self.name,
                          reasons, indicators,
@@ -283,8 +297,68 @@ class ScalpingStrategy(BaseStrategy):
 
         return Signal(SignalType.NEUTRAL, 0.0, self.name,
                      reasons, indicators)
+                     
+
+# ─────────────────── VWAP BREAKOUT STRATEGY ───────────────────
+
+class VWAPBreakoutStrategy(BaseStrategy):
+    """
+    Institutional strategy trading high-volume breakouts over VWAP 
+    or significant support/resistance levels.
+    """
+
+    def __init__(self):
+        super().__init__("VWAP_Breakout")
+
+    def analyze(self, indicators: Dict, candle_result: Dict,
+                symbol: str) -> Signal:
+        reasons = []
+        buy_score = 0.0
+        sell_score = 0.0
+
+        close = indicators.get('close', 0)
+        vwap = indicators.get('vwap', 0)
+        res = indicators.get('resistance', 0)
+        sup = indicators.get('support', 0)
+        vol_high = indicators.get('volume_high', False)
+        
+        if vwap == 0 or res == 0 or sup == 0:
+            return Signal(SignalType.NEUTRAL, 0.0, self.name, reasons, indicators)
+
+        dist_to_res = (res - close) / close
+        dist_to_sup = (close - sup) / close
+        dist_to_vwap = abs(close - vwap) / close
+
+        # VWAP Crossover with Volume
+        if vol_high and dist_to_vwap < 0.005: 
+            if close > vwap and indicators.get('ema9', 0) > vwap:
+                buy_score += 0.7
+                reasons.append("Bullish VWAP Breakout with Volume")
+            elif close < vwap and indicators.get('ema9', 0) < vwap:
+                sell_score += 0.7
+                reasons.append("Bearish VWAP Breakdown with Volume")
+
+        # Resistance Breakout
+        if vol_high and dist_to_res < 0.002 and close >= res:
+            buy_score += 0.8
+            reasons.append("Resistance Breakout detected")
+        elif vol_high and dist_to_sup < 0.002 and close <= sup:
+            sell_score += 0.8
+            reasons.append("Support Breakdown detected")
+
+        if buy_score >= 0.6 and buy_score > sell_score:
+            return Signal(SignalType.BUY, min(buy_score, 1.0), self.name,
+                         reasons, indicators, candle_result.get('top_pattern'))
+        elif sell_score >= 0.6 and sell_score > buy_score:
+            return Signal(SignalType.SELL, min(sell_score, 1.0), self.name,
+                         reasons, indicators, candle_result.get('top_pattern'))
+
+        return Signal(SignalType.NEUTRAL, 0.0, self.name, reasons, indicators)
+
 
 
 combined_strategy = CombinedStrategy()
 scalping_strategy = ScalpingStrategy()
-ALL_STRATEGIES = [scalping_strategy, combined_strategy]
+vwap_strategy = VWAPBreakoutStrategy()
+ALL_STRATEGIES = [scalping_strategy, vwap_strategy, combined_strategy]
+

@@ -15,14 +15,14 @@ class Config:
 
     # Notifications
     DISCORD_WEBHOOK_URL: str = os.getenv('DISCORD_WEBHOOK_URL', '')
-    MAX_STOP_LOSS_USD: float = float(os.getenv('MAX_STOP_LOSS_USD', 0.8))
-    MIN_TAKE_PROFIT_USD: float = float(os.getenv('MIN_TAKE_PROFIT_USD', 0.4))
-    MAX_TAKE_PROFIT_USD: float = float(os.getenv('MAX_TAKE_PROFIT_USD', 1.0))
+    MAX_STOP_LOSS_USD: float = float(os.getenv('MAX_STOP_LOSS_USD', 1.2))
+    MIN_TAKE_PROFIT_USD: float = float(os.getenv('MIN_TAKE_PROFIT_USD', 0.3))
+    MAX_TAKE_PROFIT_USD: float = float(os.getenv('MAX_TAKE_PROFIT_USD', 0.8))
     MAX_OPEN_TRADES: int = int(os.getenv('MAX_OPEN_TRADES', 100))
     INITIAL_CAPITAL: float = float(os.getenv('INITIAL_CAPITAL', 100.0))
 
     # Risk Management
-    RISK_PER_TRADE_PERCENT: float = float(os.getenv('RISK_PER_TRADE_PERCENT', 1.0))
+    RISK_PER_TRADE_PERCENT: float = float(os.getenv('RISK_PER_TRADE_PERCENT', 2.0))
     MAX_DAILY_LOSS_USD: float = float(os.getenv('MAX_DAILY_LOSS_USD', 10.0))
 
     # Mode

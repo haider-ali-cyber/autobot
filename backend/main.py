@@ -254,7 +254,8 @@ def close_trade(req: CloseTradeRequest, user: User = Depends(get_current_user)):
 class ManualTradeRequest(BaseModel):
     symbol: str
     side: str
-    qty: float
+    usdt: float
+    leverage: float
     stop_loss: float
     take_profit: float
 
@@ -264,15 +265,22 @@ def manual_trade(req: ManualTradeRequest, user: User = Depends(get_current_user)
     if req.symbol not in config.TRADING_PAIRS:
         raise HTTPException(status_code=400, detail=f"Symbol {req.symbol} is not configured for trading")
     
+    entry_price = data_fetcher.get_price(req.symbol)
+    if entry_price == 0:
+        raise HTTPException(status_code=400, detail="Cannot fetch current price")
+        
+    manual_qty = (req.usdt * req.leverage) / entry_price
+    
     trade = order_manager.open_trade(
         user=user,
         symbol=req.symbol,
         side=req.side,
-        entry_price=data_fetcher.get_price(req.symbol),
+        entry_price=entry_price,
         stop_loss=req.stop_loss,
         take_profit=req.take_profit,
         strategy="Manual",
-        atr=0 # Manual trades don't use dynamic ATR
+        atr=0, # Manual trades don't use dynamic ATR
+        manual_qty=manual_qty
     )
     if not trade:
         raise HTTPException(status_code=500, detail="Failed to open manual trade")
