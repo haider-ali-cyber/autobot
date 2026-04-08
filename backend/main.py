@@ -14,6 +14,7 @@ from .trading.engine import trading_engine
 from .trading.order_manager import order_manager
 from .database.models import User
 from .database.db_manager import db_manager
+from .utils.news_fetcher import news_fetcher
 
 app = FastAPI(title="Auto Crypto Trading Bot", version="3.0.0")
 
@@ -249,6 +250,42 @@ def close_trade(req: CloseTradeRequest, user: User = Depends(get_current_user)):
     success = order_manager.close_trade(trade, reason='manual')
     db_manager.log_audit(user.id, "manual_close", f"Manually closed {trade.symbol}")
     return {"success": success}
+
+class ManualTradeRequest(BaseModel):
+    symbol: str
+    side: str
+    qty: float
+    stop_loss: float
+    take_profit: float
+
+@app.post("/api/trade/manual")
+def manual_trade(req: ManualTradeRequest, user: User = Depends(get_current_user)):
+    # Verify symbol exists in configured pairs
+    if req.symbol not in config.TRADING_PAIRS:
+        raise HTTPException(status_code=400, detail=f"Symbol {req.symbol} is not configured for trading")
+    
+    trade = order_manager.open_trade(
+        user=user,
+        symbol=req.symbol,
+        side=req.side,
+        entry_price=data_fetcher.get_price(req.symbol),
+        stop_loss=req.stop_loss,
+        take_profit=req.take_profit,
+        strategy="Manual",
+        atr=0 # Manual trades don't use dynamic ATR
+    )
+    if not trade:
+        raise HTTPException(status_code=500, detail="Failed to open manual trade")
+    
+    db_manager.log_audit(user.id, "manual_entry", f"Opened {req.side} for {req.symbol}")
+    return {"message": "Success", "trade_id": trade.id}
+
+@app.get("/api/market/news")
+def get_market_news():
+    return {
+        "news": news_fetcher.fetch_news(),
+        "sessions": news_fetcher.get_market_sessions()
+    }
 
 class SettingsRequest(BaseModel):
     max_stop_loss: float

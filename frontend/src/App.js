@@ -3,7 +3,7 @@ import axios from 'axios';
 import { 
   Shield, Settings, BarChart2, List,
   Sun, Moon, Download, Info, CheckCircle, XCircle,
-  ShieldCheck, LogOut, User
+  ShieldCheck, LogOut, User, Zap, Globe, Clock, TrendingUp
 } from 'lucide-react';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -159,6 +159,7 @@ export default function App() {
   const [signals, setSignals] = useState([]);
   const [pnlHistory, setPnlHistory] = useState([]);
   const [drawdown, setDrawdown] = useState({});
+  const [marketData, setMarketData] = useState({ news: [], sessions: [] });
   const [wsConnected, setWsConnected] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [settings, setSettings] = useState({
@@ -175,6 +176,11 @@ export default function App() {
       max_daily_loss: 10.0,
       paper_trading: true,
   });
+
+  const [manualTrade, setManualTrade] = useState({
+      symbol: '', side: 'Buy', qty: 0.01, sl: 0, tp: 0
+  });
+  const [loadingManual, setLoadingManual] = useState(false);
 
   const axiosConfig = useMemo(() => ({
     headers: { Authorization: `Bearer ${token}` }
@@ -208,7 +214,10 @@ export default function App() {
       if (posArr) setPositions(posArr);
       if (phArr) setPnlHistory(phArr);
       if (drObj) setDrawdown(drObj);
-      if (settObj) setSettings(prev => ({...prev, ...settObj}));
+      if (SettObj) setSettings(prev => ({...prev, ...SettObj}));
+      
+      const mData = await get(`${API}/market/news`);
+      if (mData) setMarketData(mData);
     } catch (e) {}
   }, [token, axiosConfig]);
 
@@ -370,6 +379,64 @@ export default function App() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 20 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Manual Trade Entry */}
+                <div className="card">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Zap size={16} color="var(--primary)" /> Manual Trade Entry
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 10, alignItems: 'end' }}>
+                    <div>
+                      <label style={{ fontSize: 10 }}>Symbol</label>
+                      <select value={manualTrade.symbol} onChange={e => setManualTrade({...manualTrade, symbol: e.target.value})}>
+                        <option value="">Select Coin</option>
+                        {Object.keys(prices).map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10 }}>Side</label>
+                      <select value={manualTrade.side} onChange={e => setManualTrade({...manualTrade, side: e.target.value})}>
+                        <option value="Buy">BUY / LONG</option>
+                        <option value="Sell">SELL / SHORT</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10 }}>Quantity</label>
+                      <input type="number" step="0.001" value={manualTrade.qty} onChange={e => setManualTrade({...manualTrade, qty: parseFloat(e.target.value)})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10 }}>Stop Loss</label>
+                      <input type="number" step="0.001" value={manualTrade.sl} onChange={e => setManualTrade({...manualTrade, sl: parseFloat(e.target.value)})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 10 }}>Take Profit</label>
+                      <input type="number" step="0.001" value={manualTrade.tp} onChange={e => setManualTrade({...manualTrade, tp: parseFloat(e.target.value)})} />
+                    </div>
+                  </div>
+                  <button className={`btn ${manualTrade.side === 'Buy' ? 'btn-blue' : 'btn-red'}`} 
+                    disabled={loadingManual || !manualTrade.symbol}
+                    style={{ marginTop: 16, width: '100%', height: 40, fontWeight: 700 }}
+                    onClick={async () => {
+                      setLoadingManual(true);
+                      try {
+                        await axios.post(`${API}/trade/manual`, {
+                          symbol: manualTrade.symbol,
+                          side: manualTrade.side,
+                          qty: manualTrade.qty,
+                          stop_loss: manualTrade.sl,
+                          take_profit: manualTrade.tp
+                        }, axiosConfig);
+                        addToast(`Manual ${manualTrade.side} executed!`, 'success');
+                        loadData();
+                      } catch (e) {
+                        addToast(e.response?.data?.detail || 'Manual trade failed', 'error');
+                      } finally {
+                        setLoadingManual(false);
+                      }
+                    }}>
+                    {loadingManual ? 'Executing...' : `Execute Manual ${manualTrade.side} Order`}
+                  </button>
+                </div>
+
                 {/* Active Trades */}
                 <div className="card">
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Active Trades</h3>
@@ -425,6 +492,49 @@ export default function App() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Market Sessions */}
+                <div className="card">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Clock size={16} color="var(--primary)" /> Global Sessions (UTC)
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {marketData.sessions.map(s => (
+                      <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                           <span style={{ fontSize: 16 }}>{s.icon}</span>
+                           <span style={{ fontSize: 13, fontWeight: 600 }}>{s.name}</span>
+                         </div>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                           <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.status === 'OPEN' ? 'Closes in' : 'Opens in'} {s.time_left_hours}h</span>
+                           <span className={`badge badge-${s.is_open ? 'green' : 'gray'}`} style={{ fontSize: 9 }}>{s.status}</span>
+                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* News Feed */}
+                <div className="card">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Globe size={16} color="var(--primary)" /> Real-time Market News
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                    {marketData.news.length === 0 ? <p style={{fontSize: 12, color: 'var(--text-muted)'}}>Connecting to feeds...</p> : 
+                      marketData.news.map((n, i) => (
+                        <a key={i} href={n.link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <div className="news-item" style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, marginBottom: 4 }}>{n.title}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
+                              <span>{n.source}</span>
+                              <span>{n.published}</span>
+                            </div>
+                          </div>
+                        </a>
+                      ))
+                    }
+                  </div>
+                </div>
+
                 {/* Bot Controls */}
                 <div className="card">
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Bot Controls</h3>
