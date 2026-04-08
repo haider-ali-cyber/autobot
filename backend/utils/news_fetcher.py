@@ -2,6 +2,7 @@ import feedparser
 import time
 from datetime import datetime, timezone
 from typing import List, Dict
+from textblob import TextBlob
 from ..utils.logger import logger
 
 class NewsFetcher:
@@ -18,6 +19,7 @@ class NewsFetcher:
     def __init__(self):
         self._last_fetch = 0
         self._cached_news = []
+        self._current_sentiment = 0.0 # -1.0 to 1.0
         self._cache_ttl = 600 # 10 minutes
 
     def get_market_sessions(self) -> List[Dict]:
@@ -86,7 +88,33 @@ class NewsFetcher:
         if news_items:
             self._cached_news = news_items[:15]
             self._last_fetch = current_time
+            # Calculate aggregate sentiment
+            total_polarity = 0
+            for item in self._cached_news:
+                # TextBlob provides polarity from -1.0 to 1.0
+                blob = TextBlob(item["title"])
+                pol = blob.sentiment.polarity
+                item["sentiment"] = pol
+                total_polarity += pol
+            self._current_sentiment = total_polarity / len(self._cached_news) if self._cached_news else 0.0
         
         return self._cached_news
+
+    def get_sentiment_summary(self) -> Dict:
+        """
+        Returns a summary of current market sentiment.
+        """
+        # Ensure we have data
+        if not self._cached_news:
+            self.fetch_news()
+            
+        score = self._current_sentiment
+        label = "Bullish" if score > 0.2 else "Bearish" if score < -0.2 else "Neutral"
+        
+        return {
+            "score": round(score, 2),
+            "label": label,
+            "percentage": round((score + 1) * 50, 1) # Shift -1..1 to 0..100
+        }
 
 news_fetcher = NewsFetcher()
