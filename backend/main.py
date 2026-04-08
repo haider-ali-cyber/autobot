@@ -12,7 +12,6 @@ from .utils import auth
 from .exchange.data_fetcher import data_fetcher
 from .trading.engine import trading_engine
 from .trading.order_manager import order_manager
-from .database.models import User
 from .database.db_manager import db_manager
 from .utils.news_fetcher import news_fetcher
 from .database.models import UserInDB as User
