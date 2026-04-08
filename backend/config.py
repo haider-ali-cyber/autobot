@@ -54,7 +54,8 @@ class Config:
 
     # Server
     API_PORT: int = int(os.getenv('API_PORT', 8000))
-    DATABASE_URL: str = 'sqlite:///./data/trading_bot.db'
+    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite:///./trades.db')
+    MONGO_URI: str = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
 
     # Profit Levels (micro-profit strategy in USD)
     PROFIT_LEVELS: List[float] = [0.2, 0.3, 0.4, 0.6]

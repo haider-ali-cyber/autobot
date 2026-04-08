@@ -1,0 +1,56 @@
+services:
+  # Backend - Python FastAPI
+  - type: web
+    name: autobot-backend
+    runtime: docker
+    dockerfilePath: ./backend.Dockerfile
+    plan: free
+    envVars:
+      - key: BYBIT_API_KEY
+        sync: false
+      - key: BYBIT_API_SECRET
+        sync: false
+      - key: BYBIT_TESTNET
+        sync: false
+      - key: BYBIT_DEMO
+        sync: false
+      - key: BYBIT_DOMAIN
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: PAPER_TRADING
+        sync: false
+      - key: MAX_STOP_LOSS_USD
+        sync: false
+      - key: MIN_TAKE_PROFIT_USD
+        sync: false
+      - key: MAX_TAKE_PROFIT_USD
+        sync: false
+      - key: MAX_OPEN_TRADES
+        sync: false
+      - key: RISK_PER_TRADE_PERCENT
+        sync: false
+      - key: MAX_DAILY_LOSS_USD
+        sync: false
+      - key: INITIAL_CAPITAL
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: API_PORT
+        value: "8000"
+
+  # Frontend - React Static Site
+  - type: web
+    name: autobot-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    plan: free
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -15,6 +15,7 @@ from .trading.order_manager import order_manager
 from .database.models import User
 from .database.db_manager import db_manager
 from .utils.news_fetcher import news_fetcher
+from .database.models import UserInDB as User
 
 app = FastAPI(title="Auto Crypto Trading Bot", version="3.0.0")
 
@@ -30,22 +31,22 @@ app.add_middleware(
 class ConnectionManager:
     def __init__(self):
         # user_id -> List[WebSocket]
-        self.active_users: dict[int, List[WebSocket]] = {}
+        self.active_users: dict[str, List[WebSocket]] = {}
 
-    async def connect(self, user_id: int, ws: WebSocket):
+    async def connect(self, user_id: str, ws: WebSocket):
         await ws.accept()
         if user_id not in self.active_users:
             self.active_users[user_id] = []
         self.active_users[user_id].append(ws)
         logger.info(f"User {user_id} connected via WS")
 
-    def disconnect(self, user_id: int, ws: WebSocket):
+    def disconnect(self, user_id: str, ws: WebSocket):
         if user_id in self.active_users and ws in self.active_users[user_id]:
             self.active_users[user_id].remove(ws)
             if not self.active_users[user_id]:
                 del self.active_users[user_id]
 
-    async def broadcast_to_user(self, user_id: int, message: dict):
+    async def broadcast_to_user(self, user_id: str, message: dict):
         if user_id not in self.active_users:
             return
         data = json.dumps(message)
@@ -239,12 +240,12 @@ def stop_bot(user: User = Depends(get_current_user)):
     return {"message": "Bot stopped"}
 
 class CloseTradeRequest(BaseModel):
-    trade_id: int
+    trade_id: str
 
 @app.post("/api/trade/close")
 def close_trade(req: CloseTradeRequest, user: User = Depends(get_current_user)):
     trades = db_manager.get_open_trades(user.id)
-    trade = next((t for t in trades if t.id == req.trade_id), None)
+    trade = next((t for t in trades if str(t.id) == req.trade_id), None)
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found")
     success = order_manager.close_trade(trade, reason='manual')

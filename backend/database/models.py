@@ -1,112 +1,80 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-Base = declarative_base()
+class UserBase(BaseModel):
+    username: str
+    is_active: bool = True
+    is_admin: bool = False
+    discord_webhook: Optional[str] = None
 
-
-class User(Base):
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(50), unique=True, nullable=False)
-    hashed_password = Column(String(200), nullable=False)
+class UserInDB(UserBase):
+    id: str = Field(alias="_id")
+    hashed_password: str
+    encrypted_api_key: Optional[str] = None
+    encrypted_api_secret: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    # Encrypted API Keys (per user)
-    encrypted_api_key = Column(String(200), nullable=True)
-    encrypted_api_secret = Column(String(200), nullable=True)
+    model_config = ConfigDict(populate_by_name=True)
+
+class TradeModel(BaseModel):
+    id: str = Field(alias="_id")
+    user_id: str
+    symbol: str
+    side: str
+    entry_price: float
+    exit_price: Optional[float] = None
+    quantity: float
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    pnl: float = 0.0
+    pnl_percent: float = 0.0
+    status: str = 'open'
+    strategy: Optional[str] = None
+    order_id: Optional[str] = None
+    is_paper: bool = True
+    close_reason: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    closed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+class PortfolioModel(BaseModel):
+    id: str = Field(alias="_id")
+    user_id: str
+    total_balance: float = 0.0
+    available_balance: float = 0.0
+    unrealized_pnl: float = 0.0
+    realized_pnl: float = 0.0
+    daily_pnl: float = 0.0
+    total_trades: int = 0
+    winning_trades: int = 0
+    losing_trades: int = 0
+    win_rate: float = 0.0
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
     
-    # Notifications
-    discord_webhook = Column(String(200), nullable=True)
-    
-    is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    model_config = ConfigDict(populate_by_name=True)
 
-    # Relationships
-    trades = relationship("Trade", back_populates="user")
-    portfolio = relationship("Portfolio", back_populates="user")
-    settings = relationship("BotSettings", back_populates="user")
+class SignalModel(BaseModel):
+    id: str = Field(alias="_id")
+    detected_by_user_id: Optional[str] = None
+    symbol: str
+    signal_type: str
+    strength: float = 0.0
+    strategy: Optional[str] = None
+    indicators: Optional[str] = None
+    candle_pattern: Optional[str] = None
+    acted_on: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    model_config = ConfigDict(populate_by_name=True)
 
+class BotSettingsModel(BaseModel):
+    id: str = Field(alias="_id")
+    user_id: str
+    key: str
+    value: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-class Trade(Base):
-    __tablename__ = 'trades'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-
-    symbol = Column(String(20), nullable=False)
-    side = Column(String(10), nullable=False)          # Buy / Sell
-    entry_price = Column(Float, nullable=False)
-    exit_price = Column(Float, nullable=True)
-    quantity = Column(Float, nullable=False)
-    stop_loss = Column(Float, nullable=True)
-    take_profit = Column(Float, nullable=True)
-    pnl = Column(Float, default=0.0)
-    pnl_percent = Column(Float, default=0.0)
-    status = Column(String(20), default='open')        # open / closed / cancelled
-    strategy = Column(String(100), nullable=True)
-    order_id = Column(String(100), nullable=True)
-    is_paper = Column(Boolean, default=True)
-    close_reason = Column(String(50), nullable=True)   # sl_hit / tp_hit / manual
-    created_at = Column(DateTime, default=datetime.utcnow)
-    closed_at = Column(DateTime, nullable=True)
-    notes = Column(Text, nullable=True)
-
-    user = relationship("User", back_populates="trades")
-
-
-
-class Portfolio(Base):
-    __tablename__ = 'portfolio'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-
-    total_balance = Column(Float, default=0.0)
-    available_balance = Column(Float, default=0.0)
-    unrealized_pnl = Column(Float, default=0.0)
-    realized_pnl = Column(Float, default=0.0)
-    daily_pnl = Column(Float, default=0.0)
-    total_trades = Column(Integer, default=0)
-    winning_trades = Column(Integer, default=0)
-    losing_trades = Column(Integer, default=0)
-    win_rate = Column(Float, default=0.0)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-    user = relationship("User", back_populates="portfolio")
-
-
-
-class Signal(Base):
-    __tablename__ = 'signals'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    # Signals are global (brain), but we track who acted on them
-    detected_by_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
-
-    symbol = Column(String(20), nullable=False)
-    signal_type = Column(String(10), nullable=False)   # BUY / SELL
-    strength = Column(Float, default=0.0)              # 0.0 - 1.0
-    strategy = Column(String(100), nullable=True)
-    indicators = Column(Text, nullable=True)           # JSON
-    candle_pattern = Column(String(100), nullable=True)
-    acted_on = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-class BotSettings(Base):
-    __tablename__ = 'bot_settings'
-    __table_args__ = (UniqueConstraint('user_id', 'key', name='uq_user_setting'),)
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-
-    key = Column(String(100), nullable=False)
-    value = Column(Text, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user = relationship("User", back_populates="settings")
-
+    model_config = ConfigDict(populate_by_name=True)

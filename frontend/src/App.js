@@ -10,9 +10,10 @@ import {
   ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
-const API = 'http://localhost:8000/api';
-const AUTH_API = 'http://localhost:8000/auth';
-const WS_URL = 'ws://localhost:8000/ws';
+const BACKEND_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : '');
+const API = `${BACKEND_URL}/api`;
+const AUTH_API = `${BACKEND_URL}/auth`;
+const WS_URL = `${BACKEND_URL.replace(/^http/, 'ws')}/ws`;
 
 axios.interceptors.response.use(
   res => res,
