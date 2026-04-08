@@ -10,6 +10,7 @@ from ..analysis.candle_patterns import detect_patterns
 from ..trading.risk_manager import risk_manager
 from ..trading.order_manager import order_manager
 from ..database.db_manager import db_manager
+from ..utils.news_fetcher import news_fetcher
 from ..strategies.base_strategy import ALL_STRATEGIES, SignalType
 
 
@@ -138,7 +139,19 @@ class TradingEngine:
         while self._running:
             try:
                 self.last_scan = datetime.utcnow().isoformat()
-                logger.info(f"Scanning {len(config.TRADING_PAIRS)} coins (Scalping Mode)...")
+                
+                # Fetch Sentiment Status
+                sentiment = news_fetcher.get_sentiment_summary()
+                score = sentiment["score"]
+                
+                # Emergency Close: If sentiment goes extremely negative (Panic)
+                if score < -0.7:
+                    logger.warning(f"EMERGENCY: Extreme Negative Sentiment Detected ({score}). Closing all trades!")
+                    order_manager.close_all_trades(reason='sentiment_panic')
+                    time.sleep(60) # Pause for 1 minute
+                    continue
+
+                logger.info(f"Scanning {len(config.TRADING_PAIRS)} coins (Scalping Mode)... Market Sentiment: {sentiment['label']} ({sentiment['percentage']}%)")
                 _got_data = 0
 
                 for symbol in config.TRADING_PAIRS:
@@ -148,6 +161,12 @@ class TradingEngine:
                     if analysis:
                         _got_data += 1
                         if analysis['actionable']:
+                            # Applying Sentiment Filter (as requested: >20% positive required for Buy)
+                            sig_type = analysis['signal']['signal']
+                            if sig_type == 'BUY' and score < 0.2:
+                                logger.info(f"Skip BUY on {symbol}: News sentiment {score} is below 0.2 trigger.")
+                                continue
+                            
                             self.total_signals += 1
                             users = db_manager.get_all_active_users()
                             for user in users:

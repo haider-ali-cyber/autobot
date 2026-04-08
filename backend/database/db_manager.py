@@ -79,6 +79,24 @@ class DBManager:
                 trade.closed_at = datetime.utcnow()
                 logger.info(f"Trade closed: ID={trade_id} PnL=${pnl:.4f} reason={reason}")
 
+    def update_trade_quantity(self, trade_id: int, new_quantity: float):
+        with get_session() as db:
+            trade = db.query(Trade).filter(Trade.id == trade_id).first()
+            if trade:
+                trade.quantity = new_quantity
+                
+    def update_trade_sl(self, trade_id: int, new_sl: float):
+        with get_session() as db:
+            trade = db.query(Trade).filter(Trade.id == trade_id).first()
+            if trade:
+                trade.stop_loss = new_sl
+                
+    def update_trade_notes(self, trade_id: int, notes: str):
+        with get_session() as db:
+            trade = db.query(Trade).filter(Trade.id == trade_id).first()
+            if trade:
+                trade.notes = notes
+
     def get_open_trades(self, user_id: Optional[int] = None) -> List[Trade]:
         with get_session() as db:
             query = db.query(Trade).filter(Trade.status == 'open')

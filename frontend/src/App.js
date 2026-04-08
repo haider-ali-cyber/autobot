@@ -159,7 +159,11 @@ export default function App() {
   const [signals, setSignals] = useState([]);
   const [pnlHistory, setPnlHistory] = useState([]);
   const [drawdown, setDrawdown] = useState({});
-  const [marketData, setMarketData] = useState({ news: [], sessions: [] });
+  const [marketData, setMarketData] = useState({ 
+    news: [], 
+    sessions: [], 
+    sentiment: { score: 0, label: 'Neutral', percentage: 50 } 
+  });
   const [wsConnected, setWsConnected] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [settings, setSettings] = useState({
@@ -217,7 +221,7 @@ export default function App() {
       if (settObj) setSettings(prev => ({...prev, ...settObj}));
       
       const mData = await get(`${API}/market/news`);
-      if (mData) setMarketData(mData);
+      if (mData) setMarketData(prev => ({...prev, ...mData}));
     } catch (e) {}
   }, [token, axiosConfig]);
 
@@ -297,6 +301,9 @@ export default function App() {
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               Engine: <span style={{ color: botStatus.running ? 'var(--success)' : 'var(--error)' }}>
                 {botStatus.running ? 'Active' : 'Standby'}
+              </span>
+              <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', background: 'var(--primary-gradient)', borderRadius: 20, color: 'white', fontWeight: 800 }}>
+                {settings.SIGNAL_THRESHOLD >= 0.7 ? '🎯 70% Precision' : '⚡ Fast Mode'}
               </span>
             </div>
           </div>
@@ -492,6 +499,30 @@ export default function App() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Sentiment Meter */}
+                <div className="card">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <TrendingUp size={16} color="var(--primary)" /> Market Sentiment
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', padding: '10px 0' }}>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: marketData?.sentiment?.label === 'Bullish' ? 'var(--success)' : marketData?.sentiment?.label === 'Bearish' ? 'var(--error)' : 'var(--primary)' }}>
+                      {marketData?.sentiment?.percentage || 50}%
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      {marketData?.sentiment?.label || 'Neutral'} Feed
+                    </div>
+                    <div className="gauge-container" style={{ height: 8, background: 'var(--bg)' }}>
+                      <div className="gauge-fill" style={{ 
+                        width: `${marketData?.sentiment?.percentage || 50}%`, 
+                        background: marketData?.sentiment?.label === 'Bullish' ? 'var(--success)' : marketData?.sentiment?.label === 'Bearish' ? 'var(--error)' : 'var(--primary)' 
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center' }}>
+                      {marketData?.sentiment?.label === 'Bearish' ? '⚠️ Long trades are currently filtered.' : '✅ Market conditions optimal.'}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Market Sessions */}
                 <div className="card">
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>

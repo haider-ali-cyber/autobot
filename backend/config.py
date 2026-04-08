@@ -48,7 +48,7 @@ class Config:
     EMA_TREND: int = 200
 
     # Strategy
-    SIGNAL_THRESHOLD: float = 0.6
+    SIGNAL_THRESHOLD: float = 0.7
     PRIMARY_TIMEFRAME: str = '3'
     CONFIRM_TIMEFRAME: str = '60'
 

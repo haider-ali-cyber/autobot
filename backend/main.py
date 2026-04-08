@@ -284,7 +284,8 @@ def manual_trade(req: ManualTradeRequest, user: User = Depends(get_current_user)
 def get_market_news():
     return {
         "news": news_fetcher.fetch_news(),
-        "sessions": news_fetcher.get_market_sessions()
+        "sessions": news_fetcher.get_market_sessions(),
+        "sentiment": news_fetcher.get_sentiment_summary()
     }
 
 class SettingsRequest(BaseModel):

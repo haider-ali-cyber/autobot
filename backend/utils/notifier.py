@@ -66,6 +66,32 @@ class DiscordNotifier:
         }
         self.send_message("", embed)
 
+    def notify_partial_close(self, trade_data: dict, amount_locked: float):
+        embed = {
+            "title": "✂️ Partial Profit Secured",
+            "color": 3447003,  # Blue
+            "fields": [
+                {"name": "Symbol", "value": trade_data['symbol'], "inline": True},
+                {"name": "Trigger", "value": "50% Target Reached", "inline": True},
+                {"name": "Profit Locked", "value": f"${amount_locked:.4f}", "inline": True},
+            ],
+            "footer": {"text": f"Remaining Qty protected by TSL | {datetime.now().strftime('%H:%M:%S')}"}
+        }
+        self.send_message("", embed)
+
+    def notify_trailing_sl(self, trade_data: dict, old_sl: float, new_sl: float):
+        embed = {
+            "title": "🛡️ Trailing Stop Activated",
+            "color": 15105570,  # Orange
+            "fields": [
+                {"name": "Symbol", "value": trade_data['symbol'], "inline": True},
+                {"name": "Action", "value": "SL moved to Breakeven", "inline": True},
+                {"name": "New SL", "value": f"${new_sl:.4f}", "inline": True},
+            ],
+            "footer": {"text": f"Trade is now Risk-Free | {datetime.now().strftime('%H:%M:%S')}"}
+        }
+        self.send_message("", embed)
+
     def notify_error(self, message: str):
         self.send_message(f"⚠️ **BOT ERROR:** {message}")
 

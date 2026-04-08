@@ -56,13 +56,19 @@ class RiskManager:
 
     # ─────────────────── POSITION SIZING ───────────────────
 
-    def calculate_quantity(self, entry_price: float, sl_price: float,
+    def calculate_quantity(self, user_id: int, entry_price: float, sl_price: float,
                            side: str, available_balance: float = None) -> float:
         """
         Calculate position quantity so that the SL loss never exceeds
-        MAX_STOP_LOSS_USD ($0.6) no matter what.
+        MAX_STOP_LOSS_USD ($0.6) no matter what. Includes Auto-Compounding.
         """
-        balance = available_balance or self.capital
+        if available_balance is None:
+            stats = db_manager.get_stats(user_id)
+            balance = self.capital + stats.get('total_pnl', 0)
+            balance = max(balance, 10.0) # Safety minimum
+        else:
+            balance = available_balance
+            
         risk_amount = min(
             balance * (self.risk_pct / 100),
             self.max_sl

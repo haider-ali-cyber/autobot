@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Callable
 from ..config import config
 from ..utils.logger import logger
 from ..database.db_manager import db_manager
+import json
 from .risk_manager import risk_manager
 from ..utils.notifier import DiscordNotifier
 from ..exchange.bybit_client import BybitClient
@@ -45,7 +46,7 @@ class OrderManager:
             logger.warning(f"Trade blocked ({symbol}): {reason}")
             return None
 
-        qty = risk_manager.calculate_quantity(entry_price, stop_loss, side)
+        qty = risk_manager.calculate_quantity(user.id, entry_price, stop_loss, side)
         if qty <= 0:
             logger.warning(f"Invalid qty for {symbol}")
             return None
@@ -165,6 +166,82 @@ class OrderManager:
                         logger.info(
                             f"TP HIT: {trade.symbol} @ {trade.take_profit} (market={current_price})"
                         )
+                    else:
+                        # ─────────────────── PARTIAL TP / TRAILING SL LOGIC ───────────────────
+                        try:
+                            notes_data = json.loads(trade.notes) if trade.notes else {}
+                        except json.JSONDecodeError:
+                            notes_data = {}
+                            
+                        profit_target_dist = abs(trade.take_profit - trade.entry_price)
+                        current_dist = 0
+                        is_profitable = False
+                        
+                        if trade.side == 'Buy' and current_price > trade.entry_price:
+                            current_dist = current_price - trade.entry_price
+                            is_profitable = True
+                        elif trade.side == 'Sell' and current_price < trade.entry_price:
+                            current_dist = trade.entry_price - current_price
+                            is_profitable = True
+
+                        # Check if 50% target is reached
+                        if is_profitable and profit_target_dist > 0 and (current_dist / profit_target_dist) >= 0.5:
+                            
+                            updates_made = False
+                            
+                            # 1. Partial Close (50% Volume)
+                            if not notes_data.get('partial_closed'):
+                                close_qty = round(trade.quantity / 2, 6)
+                                remaining_qty = trade.quantity - close_qty
+                                
+                                # Execute on Exchange if Live
+                                if not trade.is_paper and trade.order_id:
+                                    user = db_manager.get_user_by_id(trade.user_id)
+                                    if user:
+                                        client = BybitClient(
+                                            api_key=user.encrypted_api_key,
+                                            api_secret=user.encrypted_api_secret,
+                                            paper_trading=False
+                                        )
+                                        client.close_position(trade.symbol, trade.side, close_qty)
+                                
+                                # Update DB & Notify
+                                db_manager.update_trade_quantity(trade.id, remaining_qty)
+                                trade.quantity = remaining_qty # Update localized object for subsequent SL check if needed
+                                notes_data['partial_closed'] = True
+                                updates_made = True
+                                
+                                logger.info(f"PARTIAL TP: Closed {close_qty} of {trade.symbol} at {current_price}")
+                                
+                                # Discord notification
+                                user = db_manager.get_user_by_id(trade.user_id)
+                                if user and user.discord_webhook:
+                                    dn = DiscordNotifier(user.discord_webhook)
+                                    locked_pnl = risk_manager.calculate_pnl(trade.side, trade.entry_price, current_price, close_qty)
+                                    dn.notify_partial_close({'symbol': trade.symbol}, locked_pnl)
+                                    
+                            # 2. Trailing Stop Loss to Breakeven
+                            if not notes_data.get('sl_moved_breakeven'):
+                                new_sl = trade.entry_price
+                                old_sl = trade.stop_loss
+                                
+                                # DB Update
+                                db_manager.update_trade_sl(trade.id, new_sl)
+                                trade.stop_loss = new_sl # Update local memory
+                                notes_data['sl_moved_breakeven'] = True
+                                updates_made = True
+                                
+                                logger.info(f"TRAILING SL: Moved {trade.symbol} SL from {old_sl} to Breakeven {new_sl}")
+                                
+                                # Discord notification
+                                user = db_manager.get_user_by_id(trade.user_id)
+                                if user and user.discord_webhook:
+                                    dn = DiscordNotifier(user.discord_webhook)
+                                    dn.notify_trailing_sl({'symbol': trade.symbol}, old_sl, new_sl)
+
+                            if updates_made:
+                                db_manager.update_trade_notes(trade.id, json.dumps(notes_data))
+                        # ─────────────────────────────────────────────────────────────────────────
             except Exception as e:
                 logger.error(f"Monitor error: {e}")
             time.sleep(2)
