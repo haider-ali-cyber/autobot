@@ -28,12 +28,9 @@ class Config:
     # Mode
     PAPER_TRADING: bool = os.getenv('PAPER_TRADING', 'true').lower() == 'true'
 
-    # Top 20 Coins to Trade (Futures/Perpetual)
+    # Top 5 Scalping Coins (Reliable Majors)
     TRADING_PAIRS: List[str] = [
-        'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT',
-        'XRPUSDT', 'DOGEUSDT', 'AVAXUSDT', 'DOTUSDT', 'MATICUSDT',
-        'LINKUSDT', 'LTCUSDT', 'UNIUSDT', 'ATOMUSDT', 'NEARUSDT',
-        'ALGOUSDT', 'APTUSDT', 'ARBUSDT', 'OPUSDT', 'SUIUSDT'
+        'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT'
     ]
 
     # Technical Analysis
@@ -59,7 +56,7 @@ class Config:
     API_PORT: int = int(os.getenv('API_PORT', 8000))
     DATABASE_URL: str = 'sqlite:///./data/trading_bot.db'
 
-    # Profit Levels (micro-profit strategy)
-    PROFIT_LEVELS: List[float] = [0.4, 0.6, 0.8, 1.0]
+    # Profit Levels (micro-profit strategy in USD)
+    PROFIT_LEVELS: List[float] = [0.2, 0.3, 0.4, 0.6]
 
 config = Config()
