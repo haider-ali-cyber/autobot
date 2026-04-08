@@ -28,10 +28,17 @@ class Config:
     # Mode
     PAPER_TRADING: bool = os.getenv('PAPER_TRADING', 'true').lower() == 'true'
 
-    # Top 5 Scalping Coins (Reliable Majors)
+    # Top 10 Major Scalping Coins
     TRADING_PAIRS: List[str] = [
-        'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT'
+        'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT',
+        'DOGEUSDT', 'LINKUSDT', 'AVAXUSDT', 'MATICUSDT', 'DOTUSDT'
     ]
+
+    # Bot Frequency
+    SCAN_INTERVAL: float = float(os.getenv('SCAN_INTERVAL', 0.1))
+
+    # Discord Bot (Full Bot, not just webhook)
+    DISCORD_BOT_TOKEN: str = os.getenv('DISCORD_BOT_TOKEN', '')
 
     # Technical Analysis
     RSI_PERIOD: int = 14

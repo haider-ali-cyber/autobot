@@ -130,14 +130,39 @@ class BybitClient:
             return None
 
     def get_all_tickers(self) -> List[Dict]:
-        import time
-        tickers = []
-        for symbol in config.TRADING_PAIRS:
-            t = self.get_ticker(symbol)
-            if t:
-                tickers.append(t)
-            time.sleep(0.2)  # 200ms between calls to avoid rate limits
-        return tickers
+        """
+        Fetches ALL tickers in ONE bulk request (High-Frequency optimization).
+        Filters for coins in TRADING_PAIRS.
+        """
+        try:
+            resp = self.session.get_tickers(category=self.category)
+            if resp.get('retCode') == 0:
+                raw_list = resp['result']['list']
+                pairs_set = set(config.TRADING_PAIRS)
+                
+                def _f(val, default=0.0):
+                    try: return float(val) if val else default
+                    except: return default
+                
+                results = []
+                for t in raw_list:
+                    symbol = t['symbol']
+                    if symbol in pairs_set:
+                        results.append({
+                            'symbol': symbol,
+                            'last_price': _f(t.get('lastPrice')),
+                            'bid': _f(t.get('bid1Price')),
+                            'ask': _f(t.get('ask1Price')),
+                            'change_24h': _f(t.get('price24hPcnt')) * 100,
+                            'volume_24h': _f(t.get('volume24h')),
+                            'high_24h': _f(t.get('highPrice24h')),
+                            'low_24h': _f(t.get('lowPrice24h')),
+                        })
+                return results
+            return []
+        except Exception as e:
+            logger.error(f"get_all_tickers bulk error: {e}")
+            return []
 
     def get_instrument_info(self, symbol: str) -> Optional[Dict]:
         try:

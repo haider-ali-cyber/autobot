@@ -15,26 +15,25 @@ class RiskManager:
     """
 
     def __init__(self):
-        self.max_sl = config.MAX_STOP_LOSS_USD         # $0.6 hard limit
-        self.min_tp = config.MIN_TAKE_PROFIT_USD       # $0.4
-        self.max_tp = config.MAX_TAKE_PROFIT_USD       # $1.0
-        self.max_trades = config.MAX_OPEN_TRADES       # 100
-        self.risk_pct = config.RISK_PER_TRADE_PERCENT  # 1%
-        self.max_daily_loss = config.MAX_DAILY_LOSS_USD
-        self.capital = config.INITIAL_CAPITAL
+        # We store defaults from config, but will prefer user-specific values in methods
+        pass
 
     # ─────────────────── VALIDATION ───────────────────
 
-    def can_open_trade(self, user_id: int) -> Tuple[bool, str]:
-        open_count = db_manager.count_open_trades(user_id)
-        if open_count >= self.max_trades:
-            return False, f"Max trades reached ({self.max_trades})"
+    def can_open_trade(self, user) -> Tuple[bool, str]:
+        open_count = db_manager.count_open_trades(user.id)
+        max_trades = config.MAX_OPEN_TRADES # Constant for now, can be per-user later
+        
+        if open_count >= max_trades:
+            return False, f"Max trades reached ({max_trades})"
 
         # Daily loss limit only applies to live trading
         if not config.PAPER_TRADING and not config.BYBIT_TESTNET:
-            daily_loss = db_manager.get_daily_pnl(user_id)
-            if daily_loss <= -self.max_daily_loss:
-                return False, f"Daily loss limit hit (${abs(daily_loss):.2f})"
+            daily_loss = db_manager.get_daily_pnl(user.id)
+            if daily_loss <= -user.max_daily_loss: # Use user's limit if defined, else config
+                max_loss = getattr(user, 'max_daily_loss', config.MAX_DAILY_LOSS_USD)
+                if daily_loss <= -max_loss:
+                    return False, f"Daily loss limit hit (${abs(daily_loss):.2f})"
 
         return True, "OK"
 
@@ -56,22 +55,24 @@ class RiskManager:
 
     # ─────────────────── POSITION SIZING ───────────────────
 
-    def calculate_quantity(self, user_id: int, entry_price: float, sl_price: float,
+    def calculate_quantity(self, user, entry_price: float, sl_price: float,
                            side: str, available_balance: float = None) -> float:
         """
         Calculate position quantity so that the SL loss never exceeds
-        MAX_STOP_LOSS_USD ($0.6) no matter what. Includes Auto-Compounding.
+        the user's MAX_STOP_LOSS_USD (Default $0.6) no matter what.
         """
         if available_balance is None:
-            stats = db_manager.get_stats(user_id)
-            balance = self.capital + stats.get('total_pnl', 0)
-            balance = max(balance, 10.0) # Safety minimum
+            # Use user-defined capital for position sizing (SaaS mode)
+            balance = user.trading_capital
         else:
             balance = available_balance
             
+        risk_pct = user.risk_per_trade / 100
+        max_sl = user.max_sl_usd
+        
         risk_amount = min(
-            balance * (self.risk_pct / 100),
-            self.max_sl
+            balance * risk_pct,
+            max_sl
         )
 
         if side == 'Buy':

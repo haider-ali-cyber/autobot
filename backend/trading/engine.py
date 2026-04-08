@@ -23,7 +23,8 @@ class TradingEngine:
     def __init__(self):
         self._running = False
         self._thread: Optional[threading.Thread] = None
-        self.scan_interval = 15       # Quick scans for scalping
+        self._lock = threading.Lock() # Lock for thread-safe access to stats/cache
+        self.scan_interval = config.SCAN_INTERVAL 
         self.signals_cache: Dict[str, Dict] = {}
         self.status = "stopped"
         self.last_scan: Optional[str] = None
@@ -133,54 +134,55 @@ class TradingEngine:
     # ─────────────────── MAIN SCAN LOOP ───────────────────
 
     def _scan_loop(self):
-        logger.info("Trading engine scan loop started")
+        logger.info(f"Trading engine high-frequency loop started ({self.scan_interval}s interval)")
         from datetime import datetime
         _data_fail_streak = 0
+        
         while self._running:
             try:
+                start_time = time.time()
                 self.last_scan = datetime.utcnow().isoformat()
                 
-                # Fetch Sentiment Status
+                # Global Sentiment Fetch (maybe slower, e.g. every 60s)
+                # For high frequency, we might want to cache sentiment elsewhere
                 sentiment = news_fetcher.get_sentiment_summary()
                 score = sentiment["score"]
                 
-                # Emergency Close: If sentiment goes extremely negative (Panic)
-                if score < -0.7:
-                    logger.warning(f"EMERGENCY: Extreme Negative Sentiment Detected ({score}). Closing all trades!")
-                    order_manager.close_all_trades(reason='sentiment_panic')
-                    time.sleep(60) # Pause for 1 minute
-                    continue
-
-                logger.info(f"Scanning {len(config.TRADING_PAIRS)} coins (Scalping Mode)... Market Sentiment: {sentiment['label']} ({sentiment['percentage']}%)")
-                _got_data = 0
-
-                for symbol in config.TRADING_PAIRS:
-                    if not self._running:
-                        break
-                    analysis = self.analyze_coin(symbol)
-                    if analysis:
-                        _got_data += 1
-                        if analysis['actionable']:
-                            # Applying Sentiment Filter (as requested: >20% positive required for Buy)
-                            sig_type = analysis['signal']['signal']
-                            if sig_type == 'BUY' and score < 0.2:
-                                logger.info(f"Skip BUY on {symbol}: News sentiment {score} is below 0.2 trigger.")
-                                continue
-                            
-                            self.total_signals += 1
-                            users = db_manager.get_all_active_users()
-                            for user in users:
-                                self.execute_signal(analysis, user)
-                    time.sleep(0.5)  # Rate limit between coins
-
-                if _got_data == 0:
+                # Fetch ALL prices in ONE call (Optimization)
+                bulk_data = data_fetcher.get_all_tickers()
+                if not bulk_data:
                     _data_fail_streak += 1
-                    if _data_fail_streak == 1:
-                        logger.warning("No market data received (Bybit 403/rate-limit). Backing off 5 min.")
-                    time.sleep(300)  # 5 min backoff when all coins fail
+                    if _data_fail_streak % 50 == 0:
+                        logger.warning("Market data fetch failing repeatedly.")
+                    time.sleep(1)
                     continue
-                else:
-                    _data_fail_streak = 0
+
+                _data_fail_streak = 0
+                
+                # Process each coin in bulk
+                for coin_data in bulk_data:
+                    symbol = coin_data['symbol']
+                    analysis = self.analyze_coin(symbol)
+                    
+                    if analysis and analysis['actionable']:
+                        with self._lock:
+                            self.total_signals += 1
+                        
+                        # Apply Sentiment Filter
+                        sig_type = analysis['signal']['signal']
+                        if sig_type == 'BUY' and score < 0.2:
+                            continue
+                        
+                        # EXECUTION: Iterate through users who have BOT ON
+                        users = db_manager.get_all_active_users()
+                        for user in users:
+                            if user.is_bot_running:
+                                self.execute_signal(analysis, user)
+
+                # Calculate execution time to maintain precise interval
+                elapsed = time.time() - start_time
+                sleep_time = max(0.01, self.scan_interval - elapsed)
+                time.sleep(sleep_time)
 
             except Exception as e:
                 logger.error(f"Scan loop error: {e}")
@@ -210,26 +212,21 @@ class TradingEngine:
             self._thread.join(timeout=10)
         logger.info("Trading engine STOPPED")
 
-    def get_status(self, user_id: Optional[int] = None) -> Dict:
-        if user_id:
-            stats = db_manager.get_stats(user_id)
-        else:
-            stats = {'open_trades': 0, 'total_trades': 0, 'win_rate': 0, 'total_pnl': 0, 'daily_pnl': 0}
+    def get_status(self, user_id: str) -> dict:
+        """Returns bot status and user-specific stats."""
+        user = db_manager.get_user_by_id(user_id)
+        stats = db_manager.get_stats(user_id)
         
         return {
-            'status': self.status,
-            'running': self._running,
-            'paper_trading': config.PAPER_TRADING,
+            'running': user.is_bot_running if user else False,
+            'status': "RUNNING" if self._running else "GLOBAL_STOPPED",
             'last_scan': self.last_scan,
             'total_signals': self.total_signals,
-            'total_trades_opened': self.total_trades_opened,
-            'open_trades': stats['open_trades'],
-            'total_trades': stats['total_trades'],
-            'win_rate': stats['win_rate'],
-            'total_pnl': stats['total_pnl'],
-            'daily_pnl': stats['daily_pnl'],
-            'max_open_trades': config.MAX_OPEN_TRADES,
-            'max_stop_loss': config.MAX_STOP_LOSS_USD,
+            'total_trades': stats.get('total_trades', 0),
+            'total_pnl': stats.get('total_pnl', 0),
+            'daily_pnl': stats.get('daily_pnl', 0),
+            'win_rate': stats.get('win_rate', 0),
+            'paper_trading': config.PAPER_TRADING
         }
 
     @staticmethod

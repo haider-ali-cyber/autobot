@@ -224,19 +224,26 @@ def health_check():
 
 @app.post("/api/bot/start")
 def start_bot(user: User = Depends(get_current_user)):
-    if not user.is_admin:
-         raise HTTPException(status_code=403, detail="Only Admin can control engine")
-    trading_engine.start()
-    db_manager.log_audit(user.id, "bot_start", "Admin started the engine")
+    db_manager.update_user_bot_status(str(user.id), True)
+    db_manager.log_audit(user.id, "bot_start", "User started their bot")
     return {"message": "Bot started"}
 
 @app.post("/api/bot/stop")
 def stop_bot(user: User = Depends(get_current_user)):
-    if not user.is_admin:
-         raise HTTPException(status_code=403, detail="Only Admin can control engine")
-    trading_engine.stop()
-    db_manager.log_audit(user.id, "bot_stop", "Admin stopped the engine")
+    db_manager.update_user_bot_status(str(user.id), False)
+    db_manager.log_audit(user.id, "bot_stop", "User stopped their bot")
     return {"message": "Bot stopped"}
+
+@app.post("/api/bot/emergency-stop")
+def emergency_stop(user: User = Depends(get_current_user)):
+    # 1. Stop the bot loop for this user
+    db_manager.update_user_bot_status(str(user.id), False)
+    # 2. Close all open trades
+    trades = db_manager.get_open_trades(user.id)
+    for trade in trades:
+        order_manager.close_trade(trade, reason='emergency_stop')
+    db_manager.log_audit(user.id, "emergency_stop", "User triggered emergency stop (All trades closed)")
+    return {"message": "Emergency stop successful: All trades closed"}
 
 class CloseTradeRequest(BaseModel):
     trade_id: str
@@ -297,12 +304,10 @@ def get_market_news():
     }
 
 class SettingsRequest(BaseModel):
-    max_stop_loss: float
-    min_take_profit: float
-    max_take_profit: float
-    max_open_trades: int
+    trading_capital: float
     risk_per_trade: float
-    max_daily_loss: float
+    max_sl_usd: float
+    max_open_trades: int
     paper_trading: bool
     discord_webhook: Optional[str] = None
     bybit_api_key: Optional[str] = None
@@ -310,43 +315,34 @@ class SettingsRequest(BaseModel):
 
 @app.post("/api/settings")
 def update_settings(req: SettingsRequest, user: User = Depends(get_current_user)):
-    # Update core config if admin
+    # Update User Specific Trading Parameters in DB
+    db_manager.update_user_trading_settings(
+        user.id, req.trading_capital, req.risk_per_trade, req.max_sl_usd
+    )
+    
+    # Update Global Config (Only for Admin - shared resources)
     if user.is_admin:
-        config.MAX_STOP_LOSS_USD = req.max_stop_loss
-        config.MIN_TAKE_PROFIT_USD = req.min_take_profit
-        config.MAX_TAKE_PROFIT_USD = req.max_take_profit
-        config.MAX_OPEN_TRADES = req.max_open_trades
-        config.RISK_PER_TRADE_PERCENT = req.risk_per_trade
-        config.MAX_DAILY_LOSS_USD = req.max_daily_loss
         config.PAPER_TRADING = req.paper_trading
-        # Also update risk_manager in-memory values
-        from .trading.risk_manager import risk_manager
-        risk_manager.max_sl = req.max_stop_loss
-        risk_manager.min_tp = req.min_take_profit
-        risk_manager.max_tp = req.max_take_profit
-        risk_manager.max_trades = req.max_open_trades
-        risk_manager.risk_pct = req.risk_per_trade
-        risk_manager.max_daily_loss = req.max_daily_loss
+        config.MAX_OPEN_TRADES = req.max_open_trades
 
-    # Update User Specifics
+    # Update User Keys & Webhook
     webhook = req.discord_webhook if req.discord_webhook is not None else user.discord_webhook
     if req.bybit_api_key and req.bybit_api_secret:
         db_manager.update_user_api_keys(user.id, req.bybit_api_key, req.bybit_api_secret, webhook)
     else:
         db_manager.update_user_api_keys(user.id, user.encrypted_api_key, user.encrypted_api_secret, webhook)
 
-    db_manager.log_audit(user.id, "settings_update", "User updated personal settings")
+    db_manager.log_audit(user.id, "settings_update", "User updated personal trading settings")
     return {"message": "Settings updated"}
 
 @app.get("/api/settings")
 def get_settings(user: User = Depends(get_current_user)):
     return {
-        "max_stop_loss": config.MAX_STOP_LOSS_USD,
-        "min_take_profit": config.MIN_TAKE_PROFIT_USD,
-        "max_take_profit": config.MAX_TAKE_PROFIT_USD,
+        "trading_capital": user.trading_capital,
+        "risk_per_trade": user.risk_per_trade,
+        "max_sl_usd": user.max_sl_usd,
+        "is_bot_running": user.is_bot_running,
         "max_open_trades": config.MAX_OPEN_TRADES,
-        "risk_per_trade": config.RISK_PER_TRADE_PERCENT,
-        "max_daily_loss": config.MAX_DAILY_LOSS_USD,
         "paper_trading": config.PAPER_TRADING,
         "trading_pairs": config.TRADING_PAIRS,
         "discord_webhook": user.discord_webhook,
@@ -361,6 +357,10 @@ async def on_startup():
     global _event_loop
     _event_loop = asyncio.get_running_loop()
     trading_engine.start()  # also starts data_fetcher internally
+    
+    # Start Discord Bot in background
+    from .utils.discord_bot import discord_bot_handler
+    asyncio.create_task(discord_bot_handler.start_bot())
 
 @app.on_event("shutdown")
 async def on_shutdown():

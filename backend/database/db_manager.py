@@ -316,7 +316,11 @@ class DBManager:
             _id="",
             username=username,
             hashed_password=hashed_password,
-            is_admin=is_admin
+            is_admin=is_admin,
+            is_bot_running=False,
+            trading_capital=10.0,
+            risk_per_trade=1.0,
+            max_sl_usd=0.6
         )
         doc = self._obj_to_dict(user)
         res = self.db.users.insert_one(doc)
@@ -341,7 +345,8 @@ class DBManager:
         return None
 
     def get_all_active_users(self) -> List[UserInDB]:
-        docs = list(self.db.users.find({"is_active": True}))
+        # Fetch all users. We can filter by is_bot_running=True if we want only those currently trading.
+        docs = list(self.db.users.find({}))
         for d in docs: d['_id'] = str(d['_id'])
         return [UserInDB(**d) for d in docs]
 
@@ -353,5 +358,23 @@ class DBManager:
         
         if update_data:
             self.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+
+    def update_user_bot_status(self, user_id: str, running: bool):
+        self.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"is_bot_running": running}}
+        )
+        logger.info(f"User {user_id} bot status set to: {running}")
+
+    def update_user_trading_settings(self, user_id: str, capital: float, risk: float, max_sl: float):
+        self.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {
+                "trading_capital": capital,
+                "risk_per_trade": risk,
+                "max_sl_usd": max_sl
+            }}
+        )
+        logger.info(f"User {user_id} trading settings updated: Capital={capital}, Risk={risk}%, MaxSL=${max_sl}")
 
 db_manager = DBManager()

@@ -2,13 +2,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-class UserBase(BaseModel):
+class User(BaseModel):
     username: str
-    is_active: bool = True
     is_admin: bool = False
+    is_bot_running: bool = False
+    trading_capital: float = 10.0
+    risk_per_trade: float = 1.0
+    max_sl_usd: float = 0.6
     discord_webhook: Optional[str] = None
 
-class UserInDB(UserBase):
+class UserInDB(User):
     id: str = Field(alias="_id")
     hashed_password: str
     encrypted_api_key: Optional[str] = None

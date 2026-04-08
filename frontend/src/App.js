@@ -167,19 +167,17 @@ export default function App() {
   });
   const [wsConnected, setWsConnected] = useState(false);
   const [toasts, setToasts] = useState([]);
-  const [settings, setSettings] = useState({
+      is_bot_running: false,
+      trading_capital: 10.0,
+      risk_per_trade: 1.0,
+      max_sl_usd: 0.6,
+      max_open_trades: 100,
+      paper_trading: true,
       discord_webhook: '',
       bybit_api_key: '',
       bybit_api_secret: '',
       has_api_keys: false,
       is_admin: false,
-      max_stop_loss: 0.6,
-      min_take_profit: 0.4,
-      max_take_profit: 1.0,
-      max_open_trades: 100,
-      risk_per_trade: 1.0,
-      max_daily_loss: 10.0,
-      paper_trading: true,
   });
 
   const [manualTrade, setManualTrade] = useState({ symbol: '', side: 'Buy', usdt: 0, leverage: 1, sl: 0, tp: 0 });
@@ -298,8 +296,8 @@ export default function App() {
           <div>
             <div style={{ fontWeight: 700, fontSize: 16 }}>Captain {user}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Engine: <span style={{ color: botStatus.running ? 'var(--success)' : 'var(--error)' }}>
-                {botStatus.running ? 'Active' : 'Standby'}
+              Engine: <span style={{ color: settings.is_bot_running ? 'var(--success)' : 'var(--error)' }}>
+                {settings.is_bot_running ? 'Active' : 'Standby'}
               </span>
               <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', background: 'var(--primary-gradient)', borderRadius: 20, color: 'white', fontWeight: 800 }}>
                 {settings.SIGNAL_THRESHOLD >= 0.7 ? '🎯 70% Precision' : '⚡ Fast Mode'}
@@ -573,32 +571,30 @@ export default function App() {
                 {/* Bot Controls */}
                 <div className="card">
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Bot Controls</h3>
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                     <button className="btn btn-blue" style={{flex: 1}} onClick={async () => {
                       try { await axios.post(`${API}/bot/start`, {}, axiosConfig); addToast('Bot started!', 'success'); loadData(); }
                       catch(e) { addToast(e.response?.data?.detail || 'Failed', 'error'); }
-                    }}>Start</button>
-                    <button className="btn btn-red" style={{flex: 1}} onClick={async () => {
-                      try { await axios.post(`${API}/bot/stop`, {}, axiosConfig); addToast('Bot stopped!', 'info'); loadData(); }
+                    }}>Activate Bot</button>
+                    <button className="btn btn-gray" style={{flex: 1, minWidth: '45%'}} onClick={async () => {
+                      try { await axios.post(`${API}/bot/stop`, {}, axiosConfig); addToast('Bot in standby', 'info'); loadData(); }
                       catch(e) { addToast(e.response?.data?.detail || 'Failed', 'error'); }
-                    }}>Stop</button>
+                    }}>Pause Bot</button>
+                    <button className="btn btn-red" style={{width: '100%', fontWeight: 700, background: 'var(--error-gradient)'}} onClick={async () => {
+                      if (window.confirm("⚠️ EMERGENCY: Stop bot and close ALL open trades immediately?")) {
+                        try { await axios.post(`${API}/bot/emergency-stop`, {}, axiosConfig); addToast('ALL TRADES CLOSED', 'error'); loadData(); }
+                        catch(e) { addToast('Emergency stop failed', 'error'); }
+                      }
+                    }}>🚨 EMERGENCY STOP ALL</button>
                   </div>
                   <div style={{ marginTop: 16, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{color: 'var(--text-muted)'}}>Status:</span>
-                      <span style={{fontWeight: 700, color: botStatus.running ? 'var(--success)' : 'var(--error)'}}>{botStatus.running ? 'Running' : 'Stopped'}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{color: 'var(--text-muted)'}}>Mode:</span>
-                      <span style={{fontWeight: 700}}>{botStatus.paper_trading ? 'Paper' : 'Live'}</span>
+                      <span style={{fontWeight: 700}}>{settings.paper_trading ? 'Paper Trading' : 'Live Trading'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{color: 'var(--text-muted)'}}>Signals:</span>
-                      <span style={{fontWeight: 700}}>{botStatus.total_signals || 0}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{color: 'var(--text-muted)'}}>Last Scan:</span>
-                      <span style={{fontWeight: 700, fontSize: 10}}>{botStatus.last_scan ? new Date(botStatus.last_scan).toLocaleTimeString() : 'N/A'}</span>
+                      <span style={{color: 'var(--text-muted)'}}>My Capital:</span>
+                      <span style={{fontWeight: 700, color: 'var(--primary)'}}>${settings.trading_capital}</span>
                     </div>
                   </div>
                 </div>
@@ -730,24 +726,18 @@ export default function App() {
                      value={settings.bybit_api_secret || ''} onChange={e => setSettings({...settings, bybit_api_secret: e.target.value})} />
                  </div>
                  <div>
-                   <label>Discord Webhook URL</label>
-                   <input type="text" placeholder="https://discord.com/api/webhooks/..."
-                     value={settings.discord_webhook || ''} onChange={e => setSettings({...settings, discord_webhook: e.target.value})} />
-                 </div>
-                 {settings.has_api_keys && (
-                   <div style={{ fontSize: 12, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                     <Shield size={14} /> API keys saved securely
-                   </div>
-                 )}
-                 <button className="btn btn-blue" style={{ height: 44 }} onClick={async () => {
+                    <label>Discord Webhook URL</label>
+                    <input type="text" placeholder="https://discord.com/api/webhooks/..."
+                      value={settings.discord_webhook || ''} 
+                      onChange={e => setSettings({...settings, discord_webhook: e.target.value})} />
+                  </div>
+                  <button className="btn btn-blue" style={{ height: 44 }} onClick={async () => {
                    try {
                      await axios.post(`${API}/settings`, {
-                       max_stop_loss: settings.max_stop_loss,
-                       min_take_profit: settings.min_take_profit,
-                       max_take_profit: settings.max_take_profit,
-                       max_open_trades: settings.max_open_trades,
+                       trading_capital: settings.trading_capital,
                        risk_per_trade: settings.risk_per_trade,
-                       max_daily_loss: settings.max_daily_loss,
+                       max_sl_usd: settings.max_sl_usd,
+                       max_open_trades: settings.max_open_trades,
                        paper_trading: settings.paper_trading,
                        discord_webhook: settings.discord_webhook,
                        bybit_api_key: settings.bybit_api_key,
@@ -758,67 +748,53 @@ export default function App() {
                    } catch (e) {
                      addToast(e.response?.data?.detail || 'Error saving settings', 'error');
                    }
-                 }}>Save Account Settings</button>
+                 }}>Save Account & Trading Settings</button>
                </div>
              </div>
 
-             {/* Admin Trading Parameters */}
-             {settings.is_admin && (
-               <div className="card">
-                 <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                   <ShieldCheck size={18} color="var(--warning)" /> Admin: Trading Parameters
-                 </h3>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                   <div>
-                     <label>Max Stop Loss ($)</label>
-                     <input type="number" step="0.1" min="0.1" max="10"
-                       value={settings.max_stop_loss}
-                       onChange={e => setSettings({...settings, max_stop_loss: parseFloat(e.target.value)})} />
-                   </div>
-                   <div>
-                     <label>Min Take Profit ($)</label>
-                     <input type="number" step="0.1" min="0.1" max="10"
-                       value={settings.min_take_profit}
-                       onChange={e => setSettings({...settings, min_take_profit: parseFloat(e.target.value)})} />
-                   </div>
-                   <div>
-                     <label>Max Take Profit ($)</label>
-                     <input type="number" step="0.1" min="0.1" max="10"
-                       value={settings.max_take_profit}
-                       onChange={e => setSettings({...settings, max_take_profit: parseFloat(e.target.value)})} />
-                   </div>
-                   <div>
-                     <label>Max Open Trades</label>
-                     <input type="number" step="1" min="1" max="500"
-                       value={settings.max_open_trades}
-                       onChange={e => setSettings({...settings, max_open_trades: parseInt(e.target.value)})} />
-                   </div>
-                   <div>
-                     <label>Risk Per Trade (%)</label>
-                     <input type="number" step="0.1" min="0.1" max="10"
-                       value={settings.risk_per_trade}
-                       onChange={e => setSettings({...settings, risk_per_trade: parseFloat(e.target.value)})} />
-                   </div>
-                   <div>
-                     <label>Max Daily Loss ($)</label>
-                     <input type="number" step="1" min="1" max="1000"
-                       value={settings.max_daily_loss}
-                       onChange={e => setSettings({...settings, max_daily_loss: parseFloat(e.target.value)})} />
-                   </div>
+             {/* Trading Parameters (Available to All) */}
+             <div className="card">
+               <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                 <Zap size={18} color="var(--primary)" /> Bot: Trading Parameters
+               </h3>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                 <div>
+                   <label>Trading Capital ($)</label>
+                   <input type="number" step="10" min="10" 
+                     value={settings.trading_capital}
+                     onChange={e => setSettings({...settings, trading_capital: parseFloat(e.target.value)})} />
                  </div>
-                 <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 0 }}>
-                     <input type="checkbox" checked={settings.paper_trading}
-                       onChange={e => setSettings({...settings, paper_trading: e.target.checked})}
-                       style={{ width: 16, height: 16 }} />
-                     <span style={{ fontSize: 13 }}>Paper Trading Mode (no real money)</span>
-                   </label>
+                 <div>
+                   <label>Risk Per Trade (%)</label>
+                   <input type="number" step="0.1" min="0.1" max="100"
+                     value={settings.risk_per_trade}
+                     onChange={e => setSettings({...settings, risk_per_trade: parseFloat(e.target.value)})} />
                  </div>
-                 <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)', background: 'rgba(234,179,8,0.1)', padding: 10, borderRadius: 8 }}>
-                   ⚠️ Changes apply immediately to the running bot. Use Save Account Settings button above.
+                 <div>
+                   <label>Max Stop Loss ($)</label>
+                   <input type="number" step="0.1" min="0.1" max="100"
+                     value={settings.max_sl_usd}
+                     onChange={e => setSettings({...settings, max_sl_usd: parseFloat(e.target.value)})} />
+                 </div>
+                 <div>
+                   <label>Max Open Trades</label>
+                   <input type="number" step="1" min="1" max="500"
+                     value={settings.max_open_trades}
+                     onChange={e => setSettings({...settings, max_open_trades: parseInt(e.target.value)})} />
                  </div>
                </div>
-             )}
+               <div style={{ marginTop: 20 }}>
+                 <label className="checkbox-container" style={{ fontSize: 13, fontWeight: 600 }}>
+                   <input type="checkbox" checked={settings.paper_trading} 
+                     onChange={e => setSettings({...settings, paper_trading: e.target.checked})} />
+                   <span className="checkmark" /> Use Paper Trading Mode (Safety Always First)
+                 </label>
+               </div>
+               <div className="info-box" style={{ marginTop: 16, background: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', borderRadius: 8, padding: 12, fontSize: 12 }}>
+                 <Info size={14} style={{ marginRight: 6 }} /> 
+                 Your capital and risk settings apply only to your trades. The bot will manage positions within these bounds to maximize profit.
+               </div>
+             </div>
            </div>
         )}
       </div>
