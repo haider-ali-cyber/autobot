@@ -167,6 +167,7 @@ export default function App() {
   });
   const [wsConnected, setWsConnected] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [settings, setSettings] = useState({
       is_bot_running: false,
       trading_capital: 10.0,
       risk_per_trade: 1.0,
@@ -302,7 +303,7 @@ export default function App() {
                 {settings.is_bot_running ? 'Active' : 'Standby'}
               </span>
               <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', background: 'var(--primary-gradient)', borderRadius: 20, color: 'white', fontWeight: 800 }}>
-                {settings.SIGNAL_THRESHOLD >= 0.7 ? '🎯 70% Precision' : '⚡ Fast Mode'}
+                ⚡ Fast Mode (10Hz)
               </span>
             </div>
           </div>
