@@ -52,9 +52,10 @@ class BybitClient:
             'api_secret': self.api_secret,
         }
         
-        # If using relay, we MUST provide base_url explicitly to override pybit internals
+        # Note: base_url was removed in pybit >= 5.7. Relay domain is handled
+        # via the 'domain' parameter above. Log the relay URL for reference only.
         if config.BYBIT_RELAY_URL:
-            kwargs['base_url'] = config.BYBIT_RELAY_URL
+            logger.info(f"Relay URL configured (domain override applied): {config.BYBIT_RELAY_URL}")
 
         self.session = HTTP(**kwargs)
         self.category = "linear"  # USDT perpetual futures
