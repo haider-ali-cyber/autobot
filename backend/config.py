@@ -11,6 +11,7 @@ class Config:
     BYBIT_TESTNET: bool = os.getenv('BYBIT_TESTNET', 'true').lower() == 'true'
     BYBIT_DEMO: bool = os.getenv('BYBIT_DEMO', 'true').lower() == 'true'
     BYBIT_DOMAIN: str = os.getenv('BYBIT_DOMAIN', 'https://api.bybit.com')
+    BYBIT_RELAY_URL: str = os.getenv('BYBIT_RELAY_URL', '')
     ENCRYPTION_KEY: str = os.getenv('ENCRYPTION_KEY', '')
 
     # Notifications

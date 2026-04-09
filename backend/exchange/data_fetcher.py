@@ -136,6 +136,9 @@ class DataFetcher:
             result[sym] = t
         return result
 
+    def get_all_tickers(self) -> Dict[str, Dict]:
+        return self.fetch_all_prices()
+
     def get_price(self, symbol: str) -> float:
         return self.prices.get(symbol, 0.0)
 

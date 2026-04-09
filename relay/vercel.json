@@ -1,0 +1,4 @@
+{
+  "rewrite": [{ "source": "/(.*)", "destination": "/api" }],
+  "regions": ["fra1"]
+}

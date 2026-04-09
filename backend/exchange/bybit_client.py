@@ -18,15 +18,24 @@ class BybitClient:
         # Allow explicit testnet/demo override; default to config
         _testnet = testnet if testnet is not None else config.BYBIT_TESTNET
         _demo = demo if demo is not None else config.BYBIT_DEMO
+        # Handle Relay or Direct Domain
         _url = base_url if base_url is not None else config.BYBIT_DOMAIN
-        
+        if config.BYBIT_RELAY_URL:
+            _url = config.BYBIT_RELAY_URL
+            logger.info(f"Using Bybit Relay: {_url}")
+
         # Handle Encryption/Decryption if keys are provided
         if self.api_key and self.api_secret and config.ENCRYPTION_KEY:
             try:
+                from cryptography.fernet import Fernet
                 f = Fernet(config.ENCRYPTION_KEY.encode())
-                if not self.api_key.startswith('paper_'):
-                    self.api_key = f.decrypt(self.api_key.encode()).decode()
-                self.api_secret = f.decrypt(self.api_secret.encode()).decode()
+                if not self.api_key.startswith('paper_') and not self.api_key.startswith('2D'): # Simple check for cleartext vs encrypted
+                    # If it looks like it might be encrypted (not starting with known patterns)
+                    try:
+                        self.api_key = f.decrypt(self.api_key.encode()).decode()
+                        self.api_secret = f.decrypt(self.api_secret.encode()).decode()
+                    except:
+                        pass # Was likely already decrypted or the provided key is cleartext
             except Exception as e:
                 logger.warning(f"Decryption failed: {e}")
 
@@ -35,13 +44,19 @@ class BybitClient:
         if 'bytick' in _url.lower():
             _domain_arg = 'bytick'
             
-        self.session = HTTP(
-            testnet=_testnet,
-            demo=_demo,
-            domain=_domain_arg,
-            api_key=self.api_key,
-            api_secret=self.api_secret,
-        )
+        kwargs = {
+            'testnet': _testnet,
+            'demo': _demo,
+            'domain': _domain_arg,
+            'api_key': self.api_key,
+            'api_secret': self.api_secret,
+        }
+        
+        # If using relay, we MUST provide base_url explicitly to override pybit internals
+        if config.BYBIT_RELAY_URL:
+            kwargs['base_url'] = config.BYBIT_RELAY_URL
+
+        self.session = HTTP(**kwargs)
         self.category = "linear"  # USDT perpetual futures
 
     # ─────────────────── ACCOUNT ───────────────────
