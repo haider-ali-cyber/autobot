@@ -171,6 +171,8 @@ export default function App() {
       trading_capital: 10.0,
       risk_per_trade: 1.0,
       max_sl_usd: 0.6,
+      min_tp_usd: 0.4,
+      max_tp_usd: 1.0,
       max_open_trades: 100,
       paper_trading: true,
       discord_webhook: '',
@@ -737,6 +739,8 @@ export default function App() {
                        trading_capital: settings.trading_capital,
                        risk_per_trade: settings.risk_per_trade,
                        max_sl_usd: settings.max_sl_usd,
+                       min_tp_usd: settings.min_tp_usd,
+                       max_tp_usd: settings.max_tp_usd,
                        max_open_trades: settings.max_open_trades,
                        paper_trading: settings.paper_trading,
                        discord_webhook: settings.discord_webhook,
@@ -775,6 +779,18 @@ export default function App() {
                    <input type="number" step="0.1" min="0.1" max="100"
                      value={settings.max_sl_usd}
                      onChange={e => setSettings({...settings, max_sl_usd: parseFloat(e.target.value)})} />
+                 </div>
+                 <div>
+                   <label>Min Take Profit ($)</label>
+                   <input type="number" step="0.1" min="0.1" max="100"
+                     value={settings.min_tp_usd}
+                     onChange={e => setSettings({...settings, min_tp_usd: parseFloat(e.target.value)})} />
+                 </div>
+                 <div>
+                   <label>Max Take Profit ($)</label>
+                   <input type="number" step="0.1" min="0.1" max="100"
+                     value={settings.max_tp_usd}
+                     onChange={e => setSettings({...settings, max_tp_usd: parseFloat(e.target.value)})} />
                  </div>
                  <div>
                    <label>Max Open Trades</label>

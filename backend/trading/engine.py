@@ -97,8 +97,8 @@ class TradingEngine:
 
         atr = indicators.get('atr', entry_price * 0.002)
 
-        # Calculate SL/TP with $0.6 hard cap
-        sl_tp = risk_manager.calculate_sl_tp(entry_price, side, atr)
+        # Calculate SL/TP with per-user bounds
+        sl_tp = risk_manager.calculate_sl_tp(user, entry_price, side, atr)
 
         trade = order_manager.open_trade(
             user=user,

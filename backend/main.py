@@ -307,6 +307,8 @@ class SettingsRequest(BaseModel):
     trading_capital: float
     risk_per_trade: float
     max_sl_usd: float
+    min_tp_usd: float
+    max_tp_usd: float
     max_open_trades: int
     paper_trading: bool
     discord_webhook: Optional[str] = None
@@ -317,7 +319,8 @@ class SettingsRequest(BaseModel):
 def update_settings(req: SettingsRequest, user: User = Depends(get_current_user)):
     # Update User Specific Trading Parameters in DB
     db_manager.update_user_trading_settings(
-        user.id, req.trading_capital, req.risk_per_trade, req.max_sl_usd
+        user.id, req.trading_capital, req.risk_per_trade, 
+        req.max_sl_usd, req.min_tp_usd, req.max_tp_usd
     )
     
     # Update Global Config (Only for Admin - shared resources)
@@ -341,6 +344,8 @@ def get_settings(user: User = Depends(get_current_user)):
         "trading_capital": user.trading_capital,
         "risk_per_trade": user.risk_per_trade,
         "max_sl_usd": user.max_sl_usd,
+        "min_tp_usd": user.min_tp_usd,
+        "max_tp_usd": user.max_tp_usd,
         "is_bot_running": user.is_bot_running,
         "max_open_trades": config.MAX_OPEN_TRADES,
         "paper_trading": config.PAPER_TRADING,

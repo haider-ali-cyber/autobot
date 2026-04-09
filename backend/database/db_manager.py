@@ -320,7 +320,9 @@ class DBManager:
             is_bot_running=False,
             trading_capital=10.0,
             risk_per_trade=1.0,
-            max_sl_usd=0.6
+            max_sl_usd=0.6,
+            min_tp_usd=0.4,
+            max_tp_usd=1.0
         )
         doc = self._obj_to_dict(user)
         res = self.db.users.insert_one(doc)
@@ -366,15 +368,18 @@ class DBManager:
         )
         logger.info(f"User {user_id} bot status set to: {running}")
 
-    def update_user_trading_settings(self, user_id: str, capital: float, risk: float, max_sl: float):
+    def update_user_trading_settings(self, user_id: str, capital: float, risk: float,
+                                     max_sl: float, min_tp: float, max_tp: float):
         self.db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$set": {
                 "trading_capital": capital,
                 "risk_per_trade": risk,
-                "max_sl_usd": max_sl
+                "max_sl_usd": max_sl,
+                "min_tp_usd": min_tp,
+                "max_tp_usd": max_tp
             }}
         )
-        logger.info(f"User {user_id} trading settings updated: Capital={capital}, Risk={risk}%, MaxSL=${max_sl}")
+        logger.info(f"User {user_id} trading settings updated: Capital={capital}, Risk={risk}%, MaxSL=${max_sl}, TP=${min_tp}-${max_tp}")
 
 db_manager = DBManager()

@@ -9,6 +9,8 @@ class User(BaseModel):
     trading_capital: float = 10.0
     risk_per_trade: float = 1.0
     max_sl_usd: float = 0.6
+    min_tp_usd: float = 0.4
+    max_tp_usd: float = 1.0
     discord_webhook: Optional[str] = None
 
 class UserInDB(User):

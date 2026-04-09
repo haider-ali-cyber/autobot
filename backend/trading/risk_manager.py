@@ -88,16 +88,12 @@ class RiskManager:
 
     # ─────────────────── SL / TP CALCULATION ───────────────────
 
-    def calculate_sl_tp(self, entry_price: float, side: str,
-                        atr: float) -> Dict[str, float]:
+    def calculate_sl_tp(self, user, entry_price: float, side: str,
+                        atr: float, atr_sl_mult: float = 1.5,
+                        atr_tp_mult: float = 2.0) -> dict:
         """
-        Pure ATR-based SL/TP (Dynamic Volatility).
-        Uses 1.5x ATR for Stop Loss and 2.5x ATR for Take Profit.
-        Quantity sizing will adjust math later to keep dollar risk fixed.
+        Calculate SL and TP based on ATR with per-user safety bounds.
         """
-        atr_sl_mult = 1.5
-        atr_tp_mult = 2.5
-
         # Protect against 0 ATR in edge cases
         safe_atr = atr if atr > 0 else (entry_price * 0.005)
 
@@ -114,12 +110,15 @@ class RiskManager:
 
         # We keep the min_tp / max_tp checks ONLY as a safety bound for extreme low/high volatility
         # but let ATR drive the core distance.
-        if tp_dist < self.min_tp:
-            tp_dist = self.min_tp
+        min_tp = user.min_tp_usd
+        max_tp = user.max_tp_usd
+        
+        if tp_dist < min_tp:
+            tp_dist = min_tp
             raw_tp = entry_price + tp_dist if side == 'Buy' else entry_price - tp_dist
             
-        if tp_dist > self.max_tp * 2: # Give it more breathing room for breakouts
-            tp_dist = self.max_tp * 2
+        if tp_dist > max_tp * 2: # Give it more breathing room for breakouts
+            tp_dist = max_tp * 2
             raw_tp = entry_price + tp_dist if side == 'Buy' else entry_price - tp_dist
 
         return {
