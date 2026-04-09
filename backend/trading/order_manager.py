@@ -41,12 +41,12 @@ class OrderManager:
                    stop_loss: float, take_profit: float,
                    strategy: str, atr: float, manual_qty: float = None) -> Optional[Dict]:
 
-        can_open, reason = risk_manager.can_open_trade(user.id)
+        can_open, reason = risk_manager.can_open_trade(user)
         if not can_open:
             logger.warning(f"Trade blocked ({symbol}): {reason}")
             return None
 
-        qty = manual_qty if manual_qty is not None else risk_manager.calculate_quantity(user.id, entry_price, stop_loss, side)
+        qty = manual_qty if manual_qty is not None else risk_manager.calculate_quantity(user, entry_price, stop_loss, side)
         if qty <= 0:
             logger.warning(f"Invalid qty for {symbol}")
             return None

@@ -21,7 +21,7 @@ class RiskManager:
     # ─────────────────── VALIDATION ───────────────────
 
     def can_open_trade(self, user) -> Tuple[bool, str]:
-        open_count = db_manager.count_open_trades(user.id)
+        open_count = len(db_manager.get_open_trades(user.id))
         max_trades = config.MAX_OPEN_TRADES # Constant for now, can be per-user later
         
         if open_count >= max_trades:
@@ -30,10 +30,9 @@ class RiskManager:
         # Daily loss limit only applies to live trading
         if not config.PAPER_TRADING and not config.BYBIT_TESTNET:
             daily_loss = db_manager.get_daily_pnl(user.id)
-            if daily_loss <= -user.max_daily_loss: # Use user's limit if defined, else config
-                max_loss = getattr(user, 'max_daily_loss', config.MAX_DAILY_LOSS_USD)
-                if daily_loss <= -max_loss:
-                    return False, f"Daily loss limit hit (${abs(daily_loss):.2f})"
+            max_loss = getattr(user, 'max_daily_loss', config.MAX_DAILY_LOSS_USD)
+            if daily_loss <= -max_loss:
+                return False, f"Daily loss limit hit (${abs(daily_loss):.2f})"
 
         return True, "OK"
 

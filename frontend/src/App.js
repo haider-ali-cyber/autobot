@@ -576,7 +576,12 @@ export default function App() {
 
                 {/* Bot Controls */}
                 <div className="card">
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Bot Controls</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Bot Controls</span>
+                    <span className={`badge ${botStatus.running ? 'badge-green' : 'badge-gray'}`} style={{ fontSize: 10, padding: '4px 8px' }}>
+                      {botStatus.running ? '🟢 ACTIVE' : '🔴 STOPPED'}
+                    </span>
+                  </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                     <button className="btn btn-blue" style={{flex: 1}} onClick={async () => {
                       try { await axios.post(`${API}/bot/start`, {}, axiosConfig); addToast('Bot started!', 'success'); loadData(); }
