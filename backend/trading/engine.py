@@ -160,8 +160,7 @@ class TradingEngine:
                 _data_fail_streak = 0
                 
                 # Process each coin in bulk
-                for coin_data in bulk_data:
-                    symbol = coin_data['symbol']
+                for symbol in bulk_data:
                     analysis = self.analyze_coin(symbol)
                     
                     if analysis and analysis['actionable']:
