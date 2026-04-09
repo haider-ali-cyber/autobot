@@ -10,7 +10,7 @@ import {
   ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
-const BACKEND_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : '');
+const BACKEND_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://nobody110-autobot-backend.hf.space');
 const API = `${BACKEND_URL}/api`;
 const AUTH_API = `${BACKEND_URL}/auth`;
 const WS_URL = `${BACKEND_URL.replace(/^http/, 'ws')}/ws`;
