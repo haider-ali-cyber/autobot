@@ -295,7 +295,9 @@ export default function App() {
         padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ background: 'var(--primary-gradient)', borderRadius: 10, padding: 8 }}>🤖</div>
+          <div style={{ background: 'var(--primary-gradient)', borderRadius: 10, padding: 8, display: 'flex' }}>
+            <img src={logo} alt="Logo" style={{ width: 20, height: 20 }} />
+          </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 16 }}>Captain {user}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
