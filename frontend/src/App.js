@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import logo from './logo.png';
 import { 
   Shield, Settings, BarChart2, List,
   Sun, Moon, Download, Info, CheckCircle, XCircle,
