@@ -9,6 +9,15 @@ class BybitClient:
     _403_last_logged: float = 0  # class-level: shared across instances
     _403_cooldown: int = 300     # suppress repeated 403 warnings for 5 min
 
+    @staticmethod
+    def _sanitize_err(e: Exception) -> str:
+        try:
+            s = str(e)
+        except Exception:
+            s = "Unknown error"
+        s = s.replace('→', '->')
+        return s.encode('ascii', 'replace').decode('ascii')
+
     def __init__(self, api_key: str = None, api_secret: str = None,
                  paper_trading: bool = True, testnet: bool = None,
                  demo: bool = None, base_url: str = None):
@@ -75,7 +84,7 @@ class BybitClient:
                     }
             return {'total': 0, 'available': 0, 'unrealized_pnl': 0}
         except Exception as e:
-            logger.error(f"get_balance error: {e}")
+            logger.error(f"get_balance error: {self._sanitize_err(e)}")
             return {'total': 0, 'available': 0, 'unrealized_pnl': 0}
 
     # ─────────────────── MARKET DATA ───────────────────
@@ -177,7 +186,7 @@ class BybitClient:
                 return results
             return []
         except Exception as e:
-            logger.error(f"get_all_tickers bulk error: {e}")
+            logger.error(f"get_all_tickers bulk error: {self._sanitize_err(e)}")
             return []
 
     def get_instrument_info(self, symbol: str) -> Optional[Dict]:
@@ -197,7 +206,7 @@ class BybitClient:
                 }
             return None
         except Exception as e:
-            logger.error(f"get_instrument_info error {symbol}: {e}")
+            logger.error(f"get_instrument_info error {symbol}: {self._sanitize_err(e)}")
             return None
 
     # ─────────────────── ORDERS ───────────────────
@@ -248,10 +257,14 @@ class BybitClient:
                 logger.info(f"Order placed: {side} {qty} {symbol} | ID={resp['result']['orderId']}")
                 return resp['result']
             else:
-                logger.error(f"Order failed: {resp.get('retMsg')}")
+                msg = resp.get('retMsg')
+                if msg is None:
+                    msg = "Unknown error"
+                msg = str(msg).replace('→', '->').encode('ascii', 'replace').decode('ascii')
+                logger.error(f"Order failed: {msg}")
                 return None
         except Exception as e:
-            logger.error(f"place_market_order error: {e}")
+            logger.error(f"place_market_order error: {self._sanitize_err(e)}")
             return None
 
     def cancel_order(self, symbol: str, order_id: str) -> bool:

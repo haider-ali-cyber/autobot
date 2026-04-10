@@ -161,6 +161,7 @@ export default function App() {
   const [signals, setSignals] = useState([]);
   const [pnlHistory, setPnlHistory] = useState([]);
   const [drawdown, setDrawdown] = useState({});
+  const [exchangePositions, setExchangePositions] = useState([]);
   const [marketData, setMarketData] = useState({ 
     news: [], 
     sessions: [], 
@@ -220,6 +221,9 @@ export default function App() {
       if (phArr) setPnlHistory(phArr);
       if (drObj) setDrawdown(drObj);
       if (settObj) setSettings(prev => ({...prev, ...settObj}));
+
+      const exPos = await get(`${API}/exchange/positions`);
+      if (exPos) setExchangePositions(Array.isArray(exPos) ? exPos : []);
       
       const mData = await get(`${API}/market/news`);
       if (mData) setMarketData(prev => ({...prev, ...mData}));
@@ -504,6 +508,28 @@ export default function App() {
                     </div>
                   )}
                 </div>
+
+                <div className="card">
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Bybit Positions (Live)</h3>
+                  {exchangePositions.length === 0 ? <p style={{color: 'var(--text-muted)', fontSize: 12}}>No exchange positions</p> : (
+                    <table>
+                      <thead>
+                        <tr><th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th><th>UPnL</th></tr>
+                      </thead>
+                      <tbody>
+                        {exchangePositions.map((p, idx) => (
+                          <tr key={idx}>
+                            <td style={{fontWeight: 700}}>{p.symbol}</td>
+                            <td><span className={`badge badge-${p.side === 'Buy' ? 'green' : 'red'}`}>{p.side}</span></td>
+                            <td>{(p.size || 0).toFixed ? p.size.toFixed(4) : p.size}</td>
+                            <td>${(p.entry_price || 0).toFixed(4)}</td>
+                            <td style={{color: (p.unrealized_pnl || 0) >= 0 ? 'var(--success)' : 'var(--error)'}}>${(p.unrealized_pnl || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -742,6 +768,14 @@ export default function App() {
                       value={settings.discord_webhook || ''} 
                       onChange={e => setSettings({...settings, discord_webhook: e.target.value})} />
                   </div>
+                  <button className="btn btn-gray" style={{ height: 44 }} onClick={async () => {
+                   try {
+                     await axios.post(`${API}/discord/test`, { message: `Test Discord notification for ${user}` }, axiosConfig);
+                     addToast('Discord test sent! Check your channel.', 'success');
+                   } catch (e) {
+                     addToast(e.response?.data?.detail || 'Discord test failed', 'error');
+                   }
+                  }}>Send Test Discord</button>
                   <button className="btn btn-blue" style={{ height: 44 }} onClick={async () => {
                    try {
                      await axios.post(`${API}/settings`, {

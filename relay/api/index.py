@@ -5,7 +5,11 @@ import os
 app = FastAPI()
 
 # Bybit Base URL
-BYBIT_URL = "https://api.bybit.com"
+_is_testnet = os.getenv("BYBIT_TESTNET", "false").lower() == "true"
+BYBIT_URL = os.getenv(
+    "BYBIT_URL",
+    "https://api-testnet.bybit.com" if _is_testnet else "https://api.bybit.com",
+)
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def proxy(path: str, request: Request):
