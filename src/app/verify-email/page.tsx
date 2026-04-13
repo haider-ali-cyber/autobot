@@ -92,13 +92,20 @@ function VerifyEmailForm() {
     setResent(false);
     setError("");
     try {
-      await fetch("/api/auth/resend-code", {
+      const res = await fetch("/api/auth/resend-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      setResent(true);
-      setTimeout(() => setResent(false), 4000);
+      const data = await res.json().catch(() => ({})) as { devCode?: string };
+      if (data.devCode) {
+        const parts = data.devCode.split("");
+        setDigits(parts.concat(Array(CODE_LENGTH - parts.length).fill("")));
+        setResent(true);
+      } else {
+        setResent(true);
+        setTimeout(() => setResent(false), 4000);
+      }
     } finally {
       setResending(false);
     }
@@ -168,7 +175,7 @@ function VerifyEmailForm() {
 
             {resent && (
               <p className="text-xs text-green-600 bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-4 text-center">
-                New code sent to your email!
+                {digits.join("").length === CODE_LENGTH ? "✓ Code auto-filled — click Verify Email" : "New code sent to your email!"}
               </p>
             )}
 

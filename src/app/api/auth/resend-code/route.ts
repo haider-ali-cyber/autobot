@@ -21,5 +21,9 @@ export async function POST(req: NextRequest) {
   const { name, code } = result as { ok: true; code: string; name: string };
   await sendVerificationEmail(body.email, name, code).catch(() => undefined);
 
-  return NextResponse.json({ ok: true });
+  const isDev = process.env.NODE_ENV !== "production";
+  const smtpConfigured = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+  const devCode = isDev && !smtpConfigured ? code : undefined;
+
+  return NextResponse.json({ ok: true, devCode });
 }
