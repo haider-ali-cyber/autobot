@@ -1,0 +1,291 @@
+SELLORA - COMPLETE ROADMAP & REMAINING WORK
+=============================================
+Last Updated: March 31, 2026
+Current Status: FRONTEND DEMO COMPLETE (Phase 1 Done)
+
+========================================
+PHASE 1: FRONTEND DEMO - ✅ COMPLETE
+========================================
+
+All 17+ dashboard pages built with full UI:
+- Overview, Analytics, Orders
+- Product Research, Keyword Research, Trend Predictor
+- Competitor Analysis, Review Intelligence, Ad Intelligence
+- Listing Builder (+ real-time photo upload), Image Editor (+ real-time upload)
+- Supplier Finder (+ UK/USA suppliers + country filter)
+- Profit Calculator, Compliance, Brand Protection
+- Integrations page, Social Inbox
+- Settings (+ profile photo upload + sign out + delete account modal)
+- Login/Signup page
+- Help & Guide page
+
+Features implemented:
+✅ Real-time photo upload with preview (Settings, Photo Enhancer, Listing Generator)
+✅ Sign out → redirects to /login (frontend only)
+✅ Account delete → confirmation modal with DELETE text → redirects to /login
+✅ Comprehensive timezones (30+ zones)
+✅ Comprehensive currencies (20+ currencies with symbols)
+✅ Country filter in supplier finder (China/UK/USA/India/Vietnam)
+✅ Premium UI polish across all pages
+
+========================================
+PHASE 2: BACKEND + AUTHENTICATION (4-6 weeks)
+========================================
+
+PRIORITY: HIGH - This is the foundation everything else builds on
+
+1. DATABASE SETUP
+   - PostgreSQL setup (local dev + production)
+   - Prisma ORM schema design
+   - Tables needed:
+     * Users (id, email, password_hash, name, business_name, phone, created_at)
+     * Stores (id, user_id, platform, store_name, credentials_json, is_connected, last_sync_at)
+     * Products (id, user_id, asin, title, category, tracked_status, created_at)
+     * Orders (id, user_id, store_id, order_id, platform, amount, status, created_at)
+     * Notifications (user_id, type, message, is_read, created_at)
+
+2. AUTHENTICATION SYSTEM
+   - NextAuth.js integration
+   - Email/password login (bcrypt for passwords)
+   - Google OAuth login
+   - JWT session handling
+   - Protected routes middleware
+   - Password reset flow (email based)
+
+3. API ROUTES (Next.js App Router)
+   - /api/auth/* (NextAuth handles most)
+   - /api/user/profile (GET, POST, PUT)
+   - /api/user/settings (notifications, preferences)
+   - /api/stores (CRUD + connect/disconnect)
+   - /api/products (CRUD + import from stores)
+   - /api/orders (fetch from connected stores)
+
+4. STORE CONNECTIONS (Read-Only APIs)
+   - Amazon SP-API connection:
+     * OAuth flow for seller authorization
+     * Fetch orders (last 30/60/90 days)
+     * Fetch inventory levels
+     * Fetch product catalog
+   
+   - Shopify Admin API:
+     * OAuth/app installation flow
+     * Fetch orders
+     * Fetch products
+     * Webhook setup for real-time updates
+
+5. DATA SYNC JOBS
+   - Background sync every 15 minutes
+   - BullMQ + Redis for job queue
+   - Sync: Orders, inventory, revenue
+   - Error handling and retry logic
+
+TECH STACK FOR PHASE 2:
+- Backend: Next.js API Routes (no separate server needed)
+- Database: PostgreSQL (Railway/Supabase)
+- ORM: Prisma
+- Auth: NextAuth.js v5
+- Queue: BullMQ + Redis (Upstash)
+- Hosting: Vercel (frontend) + Railway (DB + Redis)
+
+ESTIMATED COST (Monthly):
+- Vercel Pro: $20
+- Railway PostgreSQL: $5-15
+- Railway Redis: Free tier
+- TOTAL: ~$25-35/month
+
+========================================
+PHASE 3: REAL DATA INTEGRATION (3-4 weeks)
+========================================
+
+Connect mock UI to real APIs:
+
+1. PRODUCT RESEARCH
+   - Keepa API or DataForSEO for real Amazon data
+   - Real BSR (Best Seller Rank) tracking
+   - Real price history charts
+   - Monthly cost: ~$50-100 for API access
+
+2. KEYWORD RESEARCH
+   - DataForSEO or similar for search volume
+   - Real Google Trends integration
+   - CPC and competition data
+
+3. COMPETITOR TRACKING
+   - Background job to scrape competitor ASINs daily
+   - Price change alerts
+   - Stock level monitoring (where available)
+
+4. SOCIAL INBOX - REAL MESSAGES
+   - Meta Graph API (Facebook + Instagram DMs)
+   - WhatsApp Business Cloud API
+   - Webhook handlers for incoming messages
+   - Real-time message sync
+
+5. AD INTELLIGENCE
+   - Meta Marketing API for ad performance
+   - TikTok Ads API (if available)
+
+========================================
+PHASE 4: INTELLIGENCE & AUTOMATION (3-4 weeks)
+========================================
+
+1. ALERTS SYSTEM
+   - Email notifications (SendGrid/AWS SES)
+   - WhatsApp alerts for critical issues
+   - In-app notification center
+
+2. AUTOMATED ACTIONS
+   - Auto-reply rules for Social Inbox
+   - Price adjustment suggestions
+   - Low inventory auto-alerts
+
+3. REPORTING
+   - Weekly email reports
+   - Custom dashboard widgets
+   - Export to CSV/PDF
+
+4. AI/ML (Optional enhancement)
+   - Product description generation (OpenAI)
+   - Review sentiment analysis
+   - Demand forecasting
+
+========================================
+PHASE 5: MONETIZATION & BILLING (2-3 weeks)
+========================================
+
+1. STRIPE INTEGRATION
+   - Subscription plans (Starter/Growth/Pro)
+   - Usage-based billing (API calls, products tracked)
+   - Invoice generation
+   - Failed payment handling
+
+2. PLAN LIMITS ENFORCEMENT
+   - Middleware to check plan limits
+   - Soft limits (warnings) vs hard limits
+   - Upgrade prompts
+
+3. TEAM/MULTI-USER
+   - Invite team members
+   - Role-based access (owner, manager, viewer)
+   - Activity logs
+
+4. ONBOARDING FLOW
+   - Welcome wizard for new users
+   - Connect first store guide
+   - Product tour
+
+========================================
+PHASE 6: PRODUCTION DEPLOYMENT (1-2 weeks)
+========================================
+
+1. SECURITY HARDENING
+   - Rate limiting on all APIs
+   - Input validation (Zod)
+   - CORS configuration
+   - Security headers
+
+2. PERFORMANCE
+   - Database indexing
+   - API response caching (Redis)
+   - Image optimization (Cloudinary/AWS S3)
+
+3. MONITORING
+   - Error tracking (Sentry)
+   - Uptime monitoring
+   - Performance metrics
+
+4. LEGAL/COMPLIANCE
+   - Privacy policy
+   - Terms of service
+   - GDPR compliance (data export/delete)
+
+========================================
+WHAT'S DONE RIGHT NOW (Demo Mode)
+========================================
+
+✅ All UI pages complete
+✅ Navigation and routing
+✅ Mock data for all features
+✅ Photo upload (frontend preview only)
+✅ Sign out (frontend redirect only)
+✅ Account delete (frontend modal only)
+✅ Login page UI
+✅ Settings page with all dropdowns
+
+WHAT REQUIRES BACKEND TO BE FUNCTIONAL
+========================================
+
+❌ Real login (currently just redirects)
+❌ User data persistence (refresh = reset)
+❌ Store connections (Amazon/Shopify)
+❌ Real orders/revenue data
+❌ Real messages in inbox
+❌ Real product research data
+❌ Photo upload to cloud storage
+❌ Account deletion (actual data removal)
+❌ Password changes
+❌ Email notifications
+
+========================================
+RECOMMENDED NEXT STEPS
+========================================
+
+OPTION A: FULL BUILD (Recommended)
+1. Set up PostgreSQL database
+2. Set up NextAuth.js
+3. Create user registration/login API
+4. Make login page functional
+5. Protect dashboard routes
+6. Build store connection flow (start with Shopify - easier)
+7. Sync real Shopify data to dashboard
+8. Then add Amazon SP-API
+
+OPTION B: QUICK WIN (MVP for Demo)
+1. Add simple JSON-based "session" that persists in localStorage
+2. Make login feel real (store email/name)
+3. Add "Connect Store" simulation that shows sample data
+4. Better for investor demos without monthly API costs
+
+OPTION C: HYBRID (Recommended for Solo Dev)
+1. Build real auth + database (Phase 2)
+2. Keep mock data for expensive APIs (product research)
+3. Add real data only for store connections (orders, inventory)
+4. Gradually replace mock data as revenue grows
+
+========================================
+CRITICAL DECISION NEEDED
+========================================
+
+Before proceeding, you need to decide:
+
+1. BUDGET: Are you willing to spend $50-100/month on APIs?
+2. TIMELINE: Do you need this live in 2 weeks or 2 months?
+3. MVP vs FULL: Demo for investors or working product for customers?
+4. MARKET: Pakistan-first or global from day one?
+
+Based on your answers, I can recommend which Phase 2 modules to build first.
+
+========================================
+FILES CREATED SO FAR
+========================================
+
+- GUIDE.md (product documentation in Urdu/English)
+- 17+ dashboard pages under /src/app/dashboard/
+- Login page at /src/app/login/page.tsx
+- Landing page at /src/app/page.tsx
+- Reusable UI components (Button, Card, Badge, Input)
+- Sidebar navigation with 17 routes
+- Header component
+
+ESTIMATED TOTAL LINES OF CODE: ~8,000+ lines
+
+========================================
+CONTACT FOR NEXT STEPS
+========================================
+
+When you're ready to continue, tell me:
+1. Which option (A, B, or C) you prefer
+2. Your monthly budget for APIs/hosting
+3. Target launch date
+
+Then I'll start Phase 2 implementation.
