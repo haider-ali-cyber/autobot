@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Search, KeyRound, FileText, Eye, Package,
   Calculator, BarChart2, Megaphone, Star, TrendingUp, Shield,
   CheckSquare, ImageIcon, ShoppingCart, ChevronLeft, ChevronRight,
-  Settings, HelpCircle, Link2, Inbox
+  Settings, HelpCircle, Link2, Inbox, Rocket
 } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -34,6 +34,7 @@ const sections = [
   {
     label: "Listing & Content",
     items: [
+      { href: "/dashboard/launch-studio", label: "Launch Studio", icon: Rocket },
       { href: "/dashboard/listing-generator", label: "Listing Builder", icon: FileText },
       { href: "/dashboard/photo-enhancer", label: "Image Editor", icon: ImageIcon },
     ],
