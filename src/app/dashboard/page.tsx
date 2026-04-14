@@ -26,12 +26,18 @@ const notices = [
 ];
 
 const shortcuts = [
-  { label: "Product Research",    href: "/dashboard/product-hunter" },
-  { label: "Build a Listing",     href: "/dashboard/listing-generator" },
-  { label: "PPC Campaign Builder", href: "/dashboard/ppc-builder" },
-  { label: "Email Sequences",     href: "/dashboard/email-generator" },
-  { label: "AI Ad Creator",       href: "/dashboard/photo-enhancer" },
-  { label: "Find Suppliers",      href: "/dashboard/supplier-finder" },
+  { label: "Product Research",    href: "/dashboard/product-hunter",    color: "text-blue-600" },
+  { label: "Keyword Research",    href: "/dashboard/keyword-research",   color: "text-blue-600" },
+  { label: "Build a Listing",     href: "/dashboard/listing-generator", color: "text-purple-600" },
+  { label: "Listing Health Score",href: "/dashboard/listing-health",    color: "text-green-600" },
+  { label: "A+ Content",          href: "/dashboard/aplus-content",     color: "text-purple-600" },
+  { label: "Bundle Finder",       href: "/dashboard/bundle-finder",     color: "text-amber-600" },
+  { label: "Pricing Strategy",    href: "/dashboard/price-tracker",     color: "text-amber-600" },
+  { label: "Inventory Planner",   href: "/dashboard/inventory",         color: "text-red-600" },
+  { label: "Product Risk Analyzer",href: "/dashboard/product-risk",    color: "text-red-600" },
+  { label: "Launch Checklist",    href: "/dashboard/launch-checklist",  color: "text-green-600" },
+  { label: "Landing Page Gen",    href: "/dashboard/landing-page-gen",  color: "text-indigo-600" },
+  { label: "PPC Builder",         href: "/dashboard/ppc-builder",       color: "text-blue-600" },
 ];
 
 export default function DashboardPage() {
@@ -167,13 +173,13 @@ export default function DashboardPage() {
 
           {/* Shortcuts */}
           <Card>
-            <p className="text-sm font-medium text-gray-900 mb-3">Quick Access</p>
-            <div className="space-y-1">
+            <p className="text-sm font-medium text-gray-900 mb-3">Quick Access <span className="text-xs text-gray-400 font-normal">{shortcuts.length} tools</span></p>
+            <div className="grid grid-cols-2 gap-1">
               {shortcuts.map(s => (
                 <Link key={s.label} href={s.href}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 text-sm text-gray-500 hover:text-gray-900 transition-colors group">
-                  <span>{s.label}</span>
-                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-md hover:bg-gray-50 text-xs text-gray-500 hover:text-gray-900 transition-colors group border border-transparent hover:border-gray-200">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.color.replace("text-", "bg-")}`} />
+                  <span className="truncate">{s.label}</span>
                 </Link>
               ))}
             </div>

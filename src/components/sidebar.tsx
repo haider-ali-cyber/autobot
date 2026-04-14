@@ -7,7 +7,8 @@ import {
   Calculator, BarChart2, Megaphone, Star, TrendingUp, Shield,
   CheckSquare, ImageIcon, ShoppingCart, ChevronLeft, ChevronRight,
   Settings, HelpCircle, Link2, Inbox, Rocket, Target, Mail,
-  Layers, Warehouse, DollarSign, ClipboardList, Globe
+  Layers, Warehouse, DollarSign, ClipboardList, Globe,
+  Award, Activity, AlertTriangle
 } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -37,6 +38,8 @@ const sections = [
     items: [
       { href: "/dashboard/launch-studio", label: "Launch Studio", icon: Rocket },
       { href: "/dashboard/listing-generator", label: "Listing Builder", icon: FileText },
+      { href: "/dashboard/listing-health", label: "Listing Health Score", icon: Activity },
+      { href: "/dashboard/aplus-content", label: "A+ Content", icon: Award },
       { href: "/dashboard/photo-enhancer", label: "AI Ad Creator", icon: ImageIcon },
       { href: "/dashboard/ppc-builder", label: "PPC Builder", icon: Target },
       { href: "/dashboard/email-generator", label: "Email Sequences", icon: Mail },
@@ -57,6 +60,7 @@ const sections = [
   {
     label: "Growth",
     items: [
+      { href: "/dashboard/product-risk", label: "Product Risk Analyzer", icon: AlertTriangle },
       { href: "/dashboard/launch-checklist", label: "Launch Checklist", icon: ClipboardList },
       { href: "/dashboard/landing-page-gen", label: "Landing Page Gen", icon: Globe },
     ],
