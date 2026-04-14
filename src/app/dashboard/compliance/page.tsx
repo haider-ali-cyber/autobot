@@ -4,43 +4,48 @@ import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Search, AlertTriangle, CheckCircle, XCircle, Zap, FileText } from "lucide-react";
+import { CheckSquare, Search, AlertTriangle, CheckCircle, XCircle, Zap, FileText, AlertCircle } from "lucide-react";
 
-const checkResult = {
-  product: "Electric Neck Massager",
-  hsCode: "9019.10.20",
-  importDuty: "3.9%",
-  restrictions: [],
-  certifications: [
-    { name: "FCC (USA)", required: true, status: "Required", note: "Electronic device — mandatory for USA" },
-    { name: "CE (EU/UK)", required: true, status: "Required", note: "If selling to UK/EU markets" },
-    { name: "RoHS", required: true, status: "Required", note: "Restriction of Hazardous Substances" },
-    { name: "FDA", required: false, status: "Not Required", note: "Not a medical device" },
-    { name: "UL Listed", required: false, status: "Optional", note: "Increases buyer trust" },
-  ],
-  amazonChecks: [
-    { check: "FBA Hazmat", status: "Pass", note: "No lithium battery declared in listing" },
-    { check: "Restricted Category", status: "Pass", note: "Health category — no gating required" },
-    { check: "Brand Registry", status: "Warn", note: "Recommended for brand protection" },
-    { check: "Image Policy", status: "Pass", note: "White background images required" },
-    { check: "Title Character Limit", status: "Pass", note: "Amazon allows 200 chars max" },
-  ],
-  customs: [
-    { market: "USA", duty: "3.9%", vat: "—", notes: "De minimis $800 (no duty under this)" },
-    { market: "UK", duty: "3.7%", vat: "20%", notes: "Post-Brexit import rules apply" },
-    { market: "EU", duty: "4.2%", vat: "20-25%", notes: "IOSS required for orders < €150" },
-    { market: "Canada", duty: "0%", vat: "5% GST", notes: "CUSMA/USMCA — check COO" },
-  ],
-};
+interface CertItem { name: string; required: boolean; status: string; note: string; }
+interface AmazonCheck { check: string; status: string; note: string; }
+interface CustomsItem { market: string; duty: string; vat: string; notes: string; }
+interface ComplianceData {
+  product: string;
+  hsCode: string;
+  importDuty: string;
+  restrictions: string[];
+  certifications: CertItem[];
+  amazonChecks: AmazonCheck[];
+  customs: CustomsItem[];
+  certsRequired: number;
+}
 
 export default function CompliancePage() {
   const [query, setQuery] = useState("Electric Neck Massager");
+  const [market, setMarket] = useState("USA Market");
   const [loading, setLoading] = useState(false);
-  const [checked, setChecked] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<ComplianceData | null>(null);
 
-  function handleCheck() {
+  async function handleCheck() {
+    const q = query.trim();
+    if (!q) return;
     setLoading(true);
-    setTimeout(() => { setLoading(false); setChecked(true); }, 1400);
+    setError(null);
+    try {
+      const res = await fetch("/api/ai/compliance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product: q, market }),
+      });
+      const json = await res.json() as ComplianceData & { error?: string };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Check failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -60,7 +65,8 @@ export default function CompliancePage() {
               />
             </div>
             <div className="flex gap-2">
-              <select className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-500 focus:outline-none cursor-pointer">
+              <select value={market} onChange={e => setMarket(e.target.value)}
+                className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-600 focus:outline-none cursor-pointer">
                 <option>USA Market</option>
                 <option>UK Market</option>
                 <option>EU Market</option>
@@ -73,15 +79,34 @@ export default function CompliancePage() {
           </div>
         </Card>
 
-        {checked && (
+        {error && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />{error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <span className="ml-3 text-sm text-gray-500">Running AI compliance check...</span>
+          </div>
+        )}
+
+        {!loading && !data && !error && (
+          <div className="text-center py-16 text-sm text-gray-400">
+            Enter a product name and click Check Now for AI-powered compliance analysis.
+          </div>
+        )}
+
+        {!loading && data && (
           <>
             {/* HS Code + Overview */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "HS Code", value: checkResult.hsCode, color: "text-blue-600" },
-                { label: "Import Duty (USA)", value: checkResult.importDuty, color: "text-amber-600" },
-                { label: "Restrictions", value: "None", color: "text-green-600" },
-                { label: "Certs Required", value: "3", color: "text-blue-600" },
+                { label: "HS Code", value: data.hsCode, color: "text-blue-600" },
+                { label: "Import Duty", value: data.importDuty, color: "text-amber-600" },
+                { label: "Restrictions", value: data.restrictions.length === 0 ? "None" : String(data.restrictions.length), color: data.restrictions.length === 0 ? "text-green-600" : "text-red-600" },
+                { label: "Certs Required", value: String(data.certsRequired), color: "text-blue-600" },
               ].map(s => (
                 <Card key={s.label} className="text-center py-4">
                   <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -97,8 +122,8 @@ export default function CompliancePage() {
                   <FileText className="w-4 h-4 text-blue-600" /> Required Certifications
                 </h3>
                 <div className="space-y-3">
-                  {checkResult.certifications.map(c => (
-                    <div key={c.name} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  {data.certifications.map((c, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                       {c.status === "Required"
                         ? <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         : c.status === "Optional"
@@ -121,8 +146,8 @@ export default function CompliancePage() {
                   <CheckSquare className="w-4 h-4 text-blue-600" /> Amazon Policy Checks
                 </h3>
                 <div className="space-y-2">
-                  {checkResult.amazonChecks.map(c => (
-                    <div key={c.check} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                  {data.amazonChecks.map((c, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       {c.status === "Pass"
                         ? <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
                         : c.status === "Fail"
@@ -143,8 +168,8 @@ export default function CompliancePage() {
               <Card>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Customs by Market</h3>
                 <div className="space-y-3">
-                  {checkResult.customs.map(c => (
-                    <div key={c.market} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  {data.customs.map((c, i) => (
+                    <div key={i} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-semibold text-gray-900">{c.market}</p>
                         <Badge variant="outline">Duty: {c.duty}</Badge>
