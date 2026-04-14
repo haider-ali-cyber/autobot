@@ -4,7 +4,7 @@ import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Search, Star, CheckCircle, MessageSquare, ExternalLink, Zap, Shield, MapPin } from "lucide-react";
+import { Package, Search, Star, CheckCircle, MessageSquare, ExternalLink, Zap, Shield, MapPin, AlertCircle } from "lucide-react";
 
 type Supplier = {
   name: string;
@@ -23,194 +23,6 @@ type Supplier = {
   speciality?: string;
 };
 
-const suppliers: Supplier[] = [
-  {
-    name: "Shenzhen Comfortlab Technology Co.",
-    location: "Guangdong, China",
-    country: "China",
-    countryFlag: "🇨🇳",
-    moq: 50,
-    unitCost: "$6.20",
-    leadTime: "12–15 days",
-    rating: 4.8,
-    orders: 2340,
-    verified: true,
-    tradeAssurance: true,
-    samples: "$18",
-    tags: ["Top Supplier", "Fast Ship"],
-    speciality: "Health & Wellness devices",
-  },
-  {
-    name: "Guangzhou Massager World Ltd.",
-    location: "Guangdong, China",
-    country: "China",
-    countryFlag: "🇨🇳",
-    moq: 100,
-    unitCost: "$5.40",
-    leadTime: "15–20 days",
-    rating: 4.6,
-    orders: 1870,
-    verified: true,
-    tradeAssurance: true,
-    samples: "$15",
-    tags: ["Best Price"],
-    speciality: "Massagers & pain relief",
-  },
-  {
-    name: "Yiwu Relax Health Products Co.",
-    location: "Zhejiang, China",
-    country: "China",
-    countryFlag: "🇨🇳",
-    moq: 30,
-    unitCost: "$7.10",
-    leadTime: "10–12 days",
-    rating: 4.9,
-    orders: 3120,
-    verified: true,
-    tradeAssurance: true,
-    samples: "$20",
-    tags: ["Top Supplier", "Low MOQ"],
-    speciality: "Portable health gadgets",
-  },
-  {
-    name: "Ningbo SmartTouch Electronics",
-    location: "Zhejiang, China",
-    country: "China",
-    countryFlag: "🇨🇳",
-    moq: 200,
-    unitCost: "$4.80",
-    leadTime: "18–25 days",
-    rating: 4.4,
-    orders: 980,
-    verified: false,
-    tradeAssurance: true,
-    samples: "$12",
-    tags: ["Bulk Only"],
-    speciality: "Electronics accessories",
-  },
-  {
-    name: "WellnessHub UK Wholesale",
-    location: "Birmingham, United Kingdom",
-    country: "UK",
-    countryFlag: "🇬🇧",
-    moq: 20,
-    unitCost: "£14.50",
-    leadTime: "2–4 days",
-    rating: 4.7,
-    orders: 640,
-    verified: true,
-    tradeAssurance: false,
-    samples: "£25",
-    tags: ["UK Warehouse", "Fast Ship", "Low MOQ"],
-    speciality: "Health & lifestyle products — UK stock",
-  },
-  {
-    name: "BrightPro Distribution Ltd.",
-    location: "Manchester, United Kingdom",
-    country: "UK",
-    countryFlag: "🇬🇧",
-    moq: 50,
-    unitCost: "£12.80",
-    leadTime: "3–5 days",
-    rating: 4.5,
-    orders: 410,
-    verified: true,
-    tradeAssurance: false,
-    samples: "£22",
-    tags: ["UK Warehouse", "Amazon UK Ready"],
-    speciality: "FBA prep & Amazon UK fulfilment",
-  },
-  {
-    name: "ProHealth Distributors Inc.",
-    location: "Los Angeles, California, USA",
-    country: "USA",
-    countryFlag: "🇺🇸",
-    moq: 25,
-    unitCost: "$18.90",
-    leadTime: "2–3 days",
-    rating: 4.8,
-    orders: 870,
-    verified: true,
-    tradeAssurance: false,
-    samples: "$30",
-    tags: ["USA Warehouse", "FBA Ready", "Low MOQ"],
-    speciality: "Health & wellness — USA domestic stock",
-  },
-  {
-    name: "NovaTech Supplies USA",
-    location: "Dallas, Texas, USA",
-    country: "USA",
-    countryFlag: "🇺🇸",
-    moq: 100,
-    unitCost: "$16.40",
-    leadTime: "3–5 days",
-    rating: 4.6,
-    orders: 530,
-    verified: true,
-    tradeAssurance: false,
-    samples: "$28",
-    tags: ["USA Warehouse", "Best Price"],
-    speciality: "Consumer electronics & gadgets",
-  },
-  {
-    name: "Rajasthan Wellness Exports",
-    location: "Jaipur, India",
-    country: "India",
-    countryFlag: "🇮🇳",
-    moq: 100,
-    unitCost: "$3.90",
-    leadTime: "18–22 days",
-    rating: 4.3,
-    orders: 760,
-    verified: true,
-    tradeAssurance: true,
-    samples: "$10",
-    tags: ["Best Price"],
-    speciality: "Ayurvedic & wellness products",
-  },
-  {
-    name: "Hanoi TechGoods Co.",
-    location: "Hanoi, Vietnam",
-    country: "Vietnam",
-    countryFlag: "🇻🇳",
-    moq: 50,
-    unitCost: "$4.20",
-    leadTime: "14–18 days",
-    rating: 4.4,
-    orders: 490,
-    verified: true,
-    tradeAssurance: true,
-    samples: "$11",
-    tags: ["Low Tariff"],
-    speciality: "Electronics — low US tariff rate",
-  },
-];
-
-const negotiationTemplate = `Subject: Inquiry for Neck Massager – MOQ & Pricing Discussion
-
-Dear [Supplier Name],
-
-I found your listing on Alibaba and am interested in sourcing your Electric Neck Massager (Model: [Model No.]).
-
-I am an FBA seller on Amazon US and currently evaluating suppliers for a long-term partnership.
-
-My requirements:
-• Initial Order: 200 units
-• Monthly Reorder: 500+ units (if quality is confirmed)
-• Customization: Logo printing on product & packaging
-• Certification: CE, FCC, RoHS required
-
-Could you please provide:
-1. Best price for 200 units and 500 units
-2. Sample cost & delivery time
-3. Available certifications
-4. Lead time for bulk order
-
-I look forward to your response.
-
-Best regards,
-[Your Name]
-Sellora Commerce`;
 
 const countryInfo: Record<string, { note: string; color: string }> = {
   All:     { note: "", color: "" },
@@ -232,25 +44,50 @@ const tagVariant = (t: string) => {
   return "outline";
 };
 
+interface SuppliersData {
+  suppliers: Supplier[];
+  negotiationTemplate: string;
+  profitCalc: { label: string; value: string; color: string }[];
+}
+
 export default function SupplierFinderPage() {
   const [query, setQuery] = useState("neck massager");
   const [country, setCountry] = useState("All");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<SuppliersData | null>(null);
   const [showTemplate, setShowTemplate] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  function handleSearch() {
+  async function handleSearch() {
+    const q = query.trim();
+    if (!q) return;
     setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    setError(null);
+    setShowTemplate(false);
+    try {
+      const res = await fetch("/api/ai/suppliers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product: q, country }),
+      });
+      const json = await res.json() as SuppliersData & { error?: string };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to find suppliers");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function copyTemplate() {
-    navigator.clipboard.writeText(negotiationTemplate);
+    navigator.clipboard.writeText(data?.negotiationTemplate ?? "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const filtered = suppliers.filter(s =>
+  const filtered = (data?.suppliers ?? []).filter(s =>
     country === "All" || s.country === country
   );
 
@@ -291,7 +128,7 @@ export default function SupplierFinderPage() {
                 {c === "All" ? "All Countries" : `${c === "China" ? "🇨🇳" : c === "UK" ? "🇬🇧" : c === "USA" ? "🇺🇸" : c === "India" ? "🇮🇳" : "🇻🇳"} ${c}`}
               </button>
             ))}
-            <span className="ml-auto text-xs text-gray-400">{filtered.length} suppliers</span>
+            <span className="ml-auto text-xs text-gray-400">{filtered.length} suppliers{data ? " · AI Generated" : ""}</span>
           </div>
 
           <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500 flex-wrap">
@@ -308,6 +145,12 @@ export default function SupplierFinderPage() {
           </div>
         </Card>
 
+        {error && (
+          <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />{error}
+          </div>
+        )}
+
         {/* Country info banner */}
         {country !== "All" && countryInfo[country].note && (
           <div className={`px-4 py-2.5 rounded-lg border text-xs font-medium ${countryInfo[country].color}`}>
@@ -315,16 +158,30 @@ export default function SupplierFinderPage() {
           </div>
         )}
 
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <span className="ml-3 text-sm text-gray-500">Finding suppliers with AI...</span>
+          </div>
+        )}
+
+        {!loading && !data && !error && (
+          <div className="text-center py-16 text-sm text-gray-400">
+            Enter a product name and click Find Suppliers to get AI-powered supplier suggestions.
+          </div>
+        )}
+
+        {!loading && data && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Supplier Cards */}
           <div className="lg:col-span-2 space-y-4">
             {filtered.length === 0 ? (
               <Card>
-                <p className="text-sm text-gray-500 text-center py-6">No suppliers found for this filter.</p>
+                <p className="text-sm text-gray-500 text-center py-6">No suppliers found for {country} — try &quot;All Countries&quot;.</p>
               </Card>
             ) : (
-              filtered.map((s) => (
-                <Card key={s.name} className="hover:border-blue-200 transition-colors hover:shadow-sm">
+              filtered.map((s, si) => (
+                <Card key={si} className="hover:border-blue-200 transition-colors hover:shadow-sm">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0 pr-3">
                       <div className="flex items-center gap-2 flex-wrap mb-1.5">
@@ -381,9 +238,11 @@ export default function SupplierFinderPage() {
                       <Button size="sm" variant="secondary" onClick={() => setShowTemplate(true)}>
                         <MessageSquare className="w-3.5 h-3.5" /> Negotiate
                       </Button>
-                      <Button size="sm" variant="ghost">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Button>
+                      {s.alibabaUrl && (
+                        <a href={s.alibabaUrl} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" variant="ghost"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                        </a>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -393,21 +252,13 @@ export default function SupplierFinderPage() {
 
           {/* Right Panel */}
           <div className="space-y-4">
+            {data.profitCalc.length > 0 && (
             <Card>
               <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Package className="w-4 h-4 text-blue-600" /> MOQ Profit Calculator
               </h3>
               <div className="divide-y divide-gray-100">
-                {[
-                  { label: "Unit Cost (supplier)",   value: "$6.20",  color: "text-gray-600" },
-                  { label: "Shipping to USA / unit",  value: "$1.80",  color: "text-gray-600" },
-                  { label: "Import Duty",             value: "$0.50",  color: "text-gray-600" },
-                  { label: "Amazon FBA Fee",          value: "$4.50",  color: "text-gray-600" },
-                  { label: "Total Cost per Unit",     value: "$13.00", color: "text-amber-600" },
-                  { label: "Selling Price",           value: "$34.99", color: "text-gray-600" },
-                  { label: "Net Profit per Unit",     value: "$16.49", color: "text-green-600" },
-                  { label: "ROI",                     value: "126.8%", color: "text-blue-600" },
-                ].map(r => (
+                {data.profitCalc.map(r => (
                   <div key={r.label} className={`flex justify-between py-2 text-xs ${["Total Cost per Unit","Net Profit per Unit","ROI"].includes(r.label) ? "font-semibold" : ""}`}>
                     <span className="text-gray-500">{r.label}</span>
                     <span className={r.color}>{r.value}</span>
@@ -415,6 +266,7 @@ export default function SupplierFinderPage() {
                 ))}
               </div>
             </Card>
+            )}
 
             {/* Country comparison */}
             <Card>
@@ -439,8 +291,7 @@ export default function SupplierFinderPage() {
               </div>
             </Card>
 
-            {/* Negotiation Template */}
-            {showTemplate && (
+            {showTemplate && data.negotiationTemplate && (
               <Card>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-gray-900">Negotiation Template</h3>
@@ -449,12 +300,13 @@ export default function SupplierFinderPage() {
                   </Button>
                 </div>
                 <pre className="text-xs text-gray-500 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 overflow-y-auto max-h-60 leading-relaxed">
-                  {negotiationTemplate}
+                  {data.negotiationTemplate}
                 </pre>
               </Card>
             )}
           </div>
         </div>
+        )}
       </main>
     </div>
   );
