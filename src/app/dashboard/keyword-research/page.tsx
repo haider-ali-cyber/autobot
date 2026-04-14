@@ -4,7 +4,16 @@ import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, TrendingDown, Zap, Copy, CheckCheck, AlertCircle } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Zap, Copy, CheckCheck, AlertCircle, Download } from "lucide-react";
+
+function exportKeywordsCSV(keywords: { keyword: string; volume: number; cpc: string; competition: string; trend: string; difficulty: number; platform: string }[]) {
+  const rows = [["Keyword", "Volume", "Difficulty", "CPC", "Competition", "Trend", "Platform"]];
+  keywords.forEach(k => rows.push([`"${k.keyword}"`, String(k.volume), String(k.difficulty), k.cpc, k.competition, k.trend, k.platform]));
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "sellora-keywords.csv"; a.click();
+}
 
 interface Keyword {
   keyword: string;
@@ -146,7 +155,15 @@ export default function KeywordResearchPage() {
           <Card className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-900">Keyword Results</h3>
-              {fetchedAt && <Badge variant="success">{keywords.length} keywords · Live</Badge>}
+              <div className="flex items-center gap-2">
+                {fetchedAt && <Badge variant="success">{keywords.length} keywords · Live</Badge>}
+                {keywords.length > 0 && (
+                  <button onClick={() => exportKeywordsCSV(keywords)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+                    <Download className="w-3.5 h-3.5" /> CSV
+                  </button>
+                )}
+              </div>
             </div>
 
             {loading ? (

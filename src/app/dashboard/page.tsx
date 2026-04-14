@@ -26,10 +26,12 @@ const notices = [
 ];
 
 const shortcuts = [
-  { label: "Product Research",  href: "/dashboard/product-hunter" },
-  { label: "Build a Listing",   href: "/dashboard/listing-generator" },
-  { label: "Calculate Profit",  href: "/dashboard/profit-calculator" },
-  { label: "Find Suppliers",    href: "/dashboard/supplier-finder" },
+  { label: "Product Research",    href: "/dashboard/product-hunter" },
+  { label: "Build a Listing",     href: "/dashboard/listing-generator" },
+  { label: "PPC Campaign Builder", href: "/dashboard/ppc-builder" },
+  { label: "Email Sequences",     href: "/dashboard/email-generator" },
+  { label: "AI Ad Creator",       href: "/dashboard/photo-enhancer" },
+  { label: "Find Suppliers",      href: "/dashboard/supplier-finder" },
 ];
 
 export default function DashboardPage() {
@@ -37,6 +39,22 @@ export default function DashboardPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <Header title="Overview" />
       <main className="flex-1 overflow-y-auto p-5 space-y-5">
+
+        {/* Connect Store Banner */}
+        <div className="flex items-center justify-between px-4 py-3 bg-blue-600/10 border border-blue-200 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+              <Package className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-blue-900">Connect your store to unlock live data</p>
+              <p className="text-xs text-blue-600">Revenue, orders and product stats below are sample data. Connect Amazon Seller Central or Shopify to see real numbers.</p>
+            </div>
+          </div>
+          <Link href="/dashboard/integrations" className="shrink-0 ml-4 px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            Connect Store
+          </Link>
+        </div>
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
