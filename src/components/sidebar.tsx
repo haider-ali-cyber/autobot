@@ -6,7 +6,8 @@ import {
   LayoutDashboard, Search, KeyRound, FileText, Eye, Package,
   Calculator, BarChart2, Megaphone, Star, TrendingUp, Shield,
   CheckSquare, ImageIcon, ShoppingCart, ChevronLeft, ChevronRight,
-  Settings, HelpCircle, Link2, Inbox, Rocket, Target, Mail
+  Settings, HelpCircle, Link2, Inbox, Rocket, Target, Mail,
+  Layers, Warehouse, DollarSign, ClipboardList, Globe
 } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -46,8 +47,18 @@ const sections = [
     items: [
       { href: "/dashboard/supplier-finder", label: "Supplier Finder", icon: Package },
       { href: "/dashboard/profit-calculator", label: "Profit Calculator", icon: Calculator },
+      { href: "/dashboard/inventory", label: "Inventory Planner", icon: Warehouse },
+      { href: "/dashboard/price-tracker", label: "Pricing Strategy", icon: DollarSign },
+      { href: "/dashboard/bundle-finder", label: "Bundle Finder", icon: Layers },
       { href: "/dashboard/compliance", label: "Compliance", icon: CheckSquare },
       { href: "/dashboard/brand-protection", label: "Brand Protection", icon: Shield },
+    ],
+  },
+  {
+    label: "Growth",
+    items: [
+      { href: "/dashboard/launch-checklist", label: "Launch Checklist", icon: ClipboardList },
+      { href: "/dashboard/landing-page-gen", label: "Landing Page Gen", icon: Globe },
     ],
   },
   {

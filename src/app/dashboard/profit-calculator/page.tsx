@@ -40,6 +40,15 @@ function Field({ label, value, onChange, prefix = "$", hint }: FieldProps) {
   );
 }
 
+function calcProfit(sp: number, cost: number, ship: number, duty: number, s2c: number, ppc: number, feePercent: number, fbaFee: number) {
+  const fee = sp * feePercent;
+  const total = cost + ship + duty + s2c + fee + fbaFee + ppc;
+  const profit = sp - total;
+  const margin = sp > 0 ? ((profit / sp) * 100).toFixed(1) : "0";
+  const roi = (cost + ship + duty) > 0 ? ((profit / (cost + ship + duty)) * 100).toFixed(1) : "0";
+  return { profit, margin, roi };
+}
+
 export default function ProfitCalculatorPage() {
   const [platform, setPlatform] = useState("amazon-fba");
   const [productCost, setProductCost] = useState("6.20");
@@ -200,6 +209,55 @@ export default function ProfitCalculatorPage() {
             </Card>
           </div>
         </div>
+
+        {/* Scenarios */}
+        <Card>
+          <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-600" /> Scenario Analysis
+          </h3>
+          <p className="text-xs text-gray-500 mb-4">How profit changes across best/realistic/worst case assumptions</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: "Pessimistic", desc: "High costs, low price", spMul: 0.85, costMul: 1.15, ppcMul: 1.4, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
+              { label: "Realistic", desc: "Current inputs", spMul: 1, costMul: 1, ppcMul: 1, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+              { label: "Optimistic", desc: "Lower costs, premium price", spMul: 1.15, costMul: 0.88, ppcMul: 0.7, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
+            ].map(sc => {
+              const adjSP = sp * sc.spMul;
+              const adjCost = cost * sc.costMul;
+              const adjPPC = ppc * sc.ppcMul;
+              const { profit: p, margin: m, roi: r } = calcProfit(adjSP, adjCost, ship, duty, s2c, adjPPC, plat.feePercent, fbaFee);
+              return (
+                <div key={sc.label} className={`rounded-xl p-4 border ${sc.bg} ${sc.border}`}>
+                  <p className={`text-sm font-bold ${sc.color} mb-0.5`}>{sc.label}</p>
+                  <p className="text-xs text-gray-500 mb-3">{sc.desc}</p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Sell Price</span>
+                      <span className="font-semibold text-gray-800">${adjSP.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Net Profit/Unit</span>
+                      <span className={`font-bold ${p >= 0 ? sc.color : "text-red-600"}`}>${p.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Margin</span>
+                      <span className="font-semibold text-gray-700">{m}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">ROI</span>
+                      <span className="font-semibold text-gray-700">{r}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1 border-t border-current border-opacity-20">
+                      <span className="text-gray-500">Total ({u} units)</span>
+                      <span className={`font-bold ${sc.color}`}>${(p * u).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
       </main>
     </div>
   );
