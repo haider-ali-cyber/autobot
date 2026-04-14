@@ -8,7 +8,7 @@ import {
   CheckSquare, ImageIcon, ShoppingCart, ChevronLeft, ChevronRight,
   Settings, HelpCircle, Link2, Inbox, Rocket, Target, Mail,
   Layers, Warehouse, DollarSign, ClipboardList, Globe,
-  Award, Activity, AlertTriangle, Headphones
+  Award, Activity, AlertTriangle, Headphones, ShieldCheck
 } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -166,6 +166,12 @@ export function Sidebar() {
             <HelpCircle className="w-4 h-4" />
             <span>Help & Guide</span>
           </Link>
+            {session?.user?.email === "admin@sellora.io" && (
+            <Link href="/dashboard/admin" className="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-amber-400 hover:bg-[#1e293b] hover:text-amber-300 transition-colors">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Admin Panel</span>
+            </Link>
+          )}
           <div className="flex items-center gap-2 pt-2 border-t border-[#1e293b] mt-1">
             <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
               <span className="text-white text-xs font-semibold">{initials}</span>
