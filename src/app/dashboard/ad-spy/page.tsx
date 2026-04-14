@@ -1,10 +1,10 @@
 ﻿"use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Megaphone, Search, Play, Heart, Eye, TrendingUp, Zap, Copy, CheckCheck } from "lucide-react";
+import { Megaphone, Search, Play, Heart, Eye, TrendingUp, Zap, Copy, CheckCheck, AlertCircle } from "lucide-react";
 
 const tiktokAds = [
   { brand: "NeckEase Pro", product: "Wireless Neck Massager", views: "2.4M", likes: "89K", shares: "12K", spend: "$8,400", days: 18, platform: "TikTok", angle: "Pain Relief Story", score: 94 },
@@ -15,23 +15,49 @@ const tiktokAds = [
   { brand: "ZenRelax", product: "Eye Massager", views: "4.2M", likes: "187K", shares: "31K", spend: "$14,600", days: 42, platform: "TikTok", angle: "ASMR + Demo", score: 98 },
 ];
 
-const adScripts = [
-  "POV: You've had neck pain for 3 years. Then you tried this... 🤯",
-  "Stop scrolling if you work from home and your neck always hurts →",
-  "My chiropractor told me to stop coming. Here's why 👇",
-  "I bought this as a joke. Now I use it every single day.",
-];
-
 export default function AdSpyPage() {
   const [platform, setPlatform] = useState("All");
   const [query, setQuery] = useState("neck massager");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const productRef = useRef<HTMLInputElement>(null);
+  const formatRef = useRef<HTMLSelectElement>(null);
+  const [scriptLoading, setScriptLoading] = useState(false);
+  const [scriptError, setScriptError] = useState<string | null>(null);
+  const [scripts, setScripts] = useState<string[]>([
+    "POV: You've had neck pain for 3 years. Then you tried this... 🤯",
+    "Stop scrolling if you work from home and your neck always hurts →",
+    "My chiropractor told me to stop coming. Here's why 👇",
+    "I bought this as a joke. Now I use it every single day.",
+  ]);
+
   function copy(text: string) {
     navigator.clipboard.writeText(text);
     setCopied(text);
     setTimeout(() => setCopied(null), 1500);
+  }
+
+  async function generateScripts() {
+    const product = productRef.current?.value?.trim();
+    const format = formatRef.current?.value ?? "TikTok Hook Script";
+    if (!product) return;
+    setScriptLoading(true);
+    setScriptError(null);
+    try {
+      const res = await fetch("/api/ai/ad-scripts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product, format }),
+      });
+      const data = await res.json() as { scripts?: string[]; error?: string };
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      if (data.scripts && data.scripts.length > 0) setScripts(data.scripts);
+    } catch (err) {
+      setScriptError(err instanceof Error ? err.message : "Failed to generate scripts");
+    } finally {
+      setScriptLoading(false);
+    }
   }
 
   const filtered = tiktokAds.filter(a =>
@@ -127,23 +153,32 @@ export default function AdSpyPage() {
               <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-blue-600" /> Script Generator
               </h3>
-              <p className="text-xs text-gray-500 mb-3">Auto-generate TikTok & Facebook scripts</p>
+              <p className="text-xs text-gray-500 mb-3">Auto-generate TikTok & Facebook scripts via AI</p>
               <input
+                ref={productRef}
                 defaultValue="Wireless Neck Massager"
                 placeholder="Product name..."
                 className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 mb-2"
               />
-              <select className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-500 focus:outline-none mb-3 cursor-pointer">
+              <select ref={formatRef} className="w-full bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-500 focus:outline-none mb-3 cursor-pointer">
                 <option>TikTok Hook Script</option>
                 <option>Facebook Ad Copy</option>
                 <option>Instagram Caption</option>
                 <option>UGC Video Script</option>
               </select>
-              <Button size="sm" className="w-full">Generate Scripts</Button>
+              <Button size="sm" className="w-full" onClick={generateScripts} loading={scriptLoading}>Generate Scripts</Button>
+
+              {scriptError && (
+                <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />{scriptError}
+                </div>
+              )}
 
               <div className="mt-4 space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Top Performing Hooks</p>
-                {adScripts.map((s, i) => (
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {scriptLoading ? "Generating..." : "Generated Scripts"}
+                </p>
+                {scripts.map((s, i) => (
                   <div key={i} className="flex items-start gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200 group">
                     <p className="text-xs text-gray-500 flex-1 leading-relaxed">{s}</p>
                     <button onClick={() => copy(s)}
