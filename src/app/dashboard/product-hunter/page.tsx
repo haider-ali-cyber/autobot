@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, Star, ChevronUp, ChevronDown, Bookmark, Download, AlertCircle } from "lucide-react";
 
-const platforms = ["All", "Amazon"];
-const categories = ["All", "Amazon"];
+const MARKETPLACES = [
+  { code: "US", flag: "🇺🇸" }, { code: "UK", flag: "🇬🇧" }, { code: "DE", flag: "🇩🇪" },
+  { code: "CA", flag: "🇨🇦" }, { code: "JP", flag: "🇯🇵" }, { code: "AU", flag: "🇦🇺" },
+  { code: "IN", flag: "🇮🇳" }, { code: "FR", flag: "🇫🇷" },
+];
 
 interface Product {
   asin: string;
@@ -49,8 +52,7 @@ function exportCSV(products: Product[]) {
 function ProductHunterInner() {
   const searchParams = useSearchParams();
   const [keyword, setKeyword] = useState(searchParams.get("q") ?? "wireless earbuds");
-  const [platform, setPlatform] = useState("All");
-  const [category, setCategory] = useState("All");
+  const [marketplace, setMarketplace] = useState("US");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,11 +64,11 @@ function ProductHunterInner() {
     if (q) setKeyword(q);
   }, [searchParams]);
 
-  const fetchProducts = useCallback(async (q: string) => {
+  const fetchProducts = useCallback(async (q: string, mkt = marketplace) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/research/products?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/research/products?q=${encodeURIComponent(q)}&marketplace=${mkt}`);
       const data = await res.json() as { products?: Product[]; fetchedAt?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setProducts(data.products ?? []);
@@ -76,7 +78,7 @@ function ProductHunterInner() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [marketplace]);
 
   useEffect(() => {
     fetchProducts(keyword || "wireless earbuds");
@@ -95,10 +97,7 @@ function ProductHunterInner() {
     });
   }
 
-  const filtered = products.filter(p =>
-    (platform === "All" || p.platform === platform) &&
-    (category === "All" || p.category === category)
-  );
+  const filtered = products;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -107,6 +106,17 @@ function ProductHunterInner() {
 
         {/* Filters */}
         <Card>
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {MARKETPLACES.map(m => (
+              <button key={m.code}
+                onClick={() => { setMarketplace(m.code); fetchProducts(keyword || "wireless earbuds", m.code); }}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                  marketplace === m.code ? "bg-blue-600 text-white border-blue-600" : "bg-white border-gray-200 text-gray-500 hover:border-blue-300"
+                }`}>
+                {m.flag} {m.code}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -114,23 +124,13 @@ function ProductHunterInner() {
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleSearch()}
-                placeholder="Search Amazon products (e.g. neck massager)..."
+                placeholder="Search products (e.g. neck massager)..."
                 className="w-full bg-gray-50 border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
               />
             </div>
-            <div className="flex gap-2 flex-wrap items-center">
-              <select value={platform} onChange={e => setPlatform(e.target.value)}
-                className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-xs text-gray-900 focus:outline-none cursor-pointer">
-                {platforms.map(p => <option key={p}>{p}</option>)}
-              </select>
-              <select value={category} onChange={e => setCategory(e.target.value)}
-                className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-xs text-gray-900 focus:outline-none cursor-pointer">
-                {categories.map(c => <option key={c}>{c}</option>)}
-              </select>
-              <Button onClick={handleSearch} loading={loading} size="sm">
-                <Search className="w-3.5 h-3.5" /> Search
-              </Button>
-            </div>
+            <Button onClick={handleSearch} loading={loading} size="sm">
+              <Search className="w-3.5 h-3.5" /> Search
+            </Button>
           </div>
         </Card>
 

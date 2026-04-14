@@ -19,13 +19,14 @@ interface ResearchProduct {
   url: string;
   isBestSeller: boolean;
   isAmazonChoice: boolean;
-  platform: "Amazon";
+  platform: string;
+  marketplace: string;
   demand: number;
   competition: number;
   score: number;
   badge: string;
   trend: "up" | "down";
-  category: "Amazon";
+  category: string;
 }
 
 interface ProductCacheEntry {
@@ -104,7 +105,20 @@ function calcScores(price: number, reviews: number, isBestSeller: boolean) {
   return { demand, competition, score, badge, trend };
 }
 
-function normalizeProduct(p: AmazonProduct): ResearchProduct | null {
+const MARKETPLACE_MAP: Record<string, { country: string; label: string; currency: string }> = {
+  US: { country: "US", label: "Amazon.com (US)", currency: "$" },
+  UK: { country: "GB", label: "Amazon.co.uk (UK)", currency: "£" },
+  DE: { country: "DE", label: "Amazon.de (Germany)", currency: "€" },
+  CA: { country: "CA", label: "Amazon.ca (Canada)", currency: "CA$" },
+  JP: { country: "JP", label: "Amazon.co.jp (Japan)", currency: "¥" },
+  AU: { country: "AU", label: "Amazon.com.au (AU)", currency: "A$" },
+  IN: { country: "IN", label: "Amazon.in (India)", currency: "₹" },
+  FR: { country: "FR", label: "Amazon.fr (France)", currency: "€" },
+  ES: { country: "ES", label: "Amazon.es (Spain)", currency: "€" },
+  IT: { country: "IT", label: "Amazon.it (Italy)", currency: "€" },
+};
+
+function normalizeProduct(p: AmazonProduct, marketplace = "US"): ResearchProduct | null {
   if (!p.asin || !p.product_title) return null;
   const price = parsePrice(p.product_price ?? p.product_minimum_offer_price);
   if (price <= 0) return null;
@@ -129,13 +143,14 @@ function normalizeProduct(p: AmazonProduct): ResearchProduct | null {
     url: p.product_url ?? `https://www.amazon.com/dp/${p.asin}`,
     isBestSeller,
     isAmazonChoice: p.is_amazon_choice ?? false,
-    platform: "Amazon",
+    platform: `Amazon ${marketplace}`,
+    marketplace,
     demand,
     competition,
     score,
     badge,
     trend,
-    category: "Amazon",
+    category: MARKETPLACE_MAP[marketplace]?.label ?? "Amazon",
   };
 }
 
@@ -163,8 +178,10 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get("q") ?? "wireless earbuds").trim().slice(0, 120);
+  const marketplace = (searchParams.get("marketplace") ?? "US").toUpperCase();
+  const countryCode = MARKETPLACE_MAP[marketplace]?.country ?? "US";
 
-  const cacheKey = query.toLowerCase();
+  const cacheKey = `${query.toLowerCase()}|${marketplace}`;
   const cached = productsCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return NextResponse.json({ ...cached.payload, fromCache: true });
@@ -176,7 +193,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const url = `https://real-time-amazon-data.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&country=US&sort_by=RELEVANCE&product_condition=ALL`;
+    const url = `https://real-time-amazon-data.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&country=${countryCode}&sort_by=RELEVANCE&product_condition=ALL`;
     const res = await fetch(url, {
       headers: {
         "x-rapidapi-key": apiKey,
@@ -196,7 +213,7 @@ export async function GET(req: NextRequest) {
     const data = await res.json() as { data?: { products?: AmazonProduct[] } };
     const raw = data?.data?.products ?? [];
     const products = raw
-      .map(normalizeProduct)
+      .map(p => normalizeProduct(p, marketplace))
       .filter((p): p is ResearchProduct => p !== null)
       .sort((a, b) => b.score - a.score)
       .slice(0, 20);

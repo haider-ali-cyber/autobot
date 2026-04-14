@@ -21,6 +21,10 @@ const kwRL = globalStore.__selloraKWRL ?? new Map<string, RateLimitEntry>();
 globalStore.__selloraKWCache = kwCache;
 globalStore.__selloraKWRL = kwRL;
 
+const MARKETPLACE_COUNTRY: Record<string, string> = {
+  US: "US", UK: "GB", DE: "DE", CA: "CA", JP: "JP", AU: "AU", IN: "IN", FR: "FR", ES: "ES", IT: "IT",
+};
+
 export interface Keyword {
   keyword: string;
   volume: number;
@@ -29,6 +33,8 @@ export interface Keyword {
   trend: "up" | "down";
   difficulty: number;
   platform: string;
+  intent: "Transactional" | "Commercial" | "Informational";
+  opportunityScore: number;
 }
 
 interface RapidKW {
@@ -68,19 +74,38 @@ function diffScore(vol: number, comp: number): number {
   return Math.min(100, Math.round(comp * 60 + Math.log10(Math.max(vol, 1)) * 5));
 }
 
-function normalizeKW(k: RapidKW, index: number): Keyword {
+function detectIntent(kw: string): "Transactional" | "Commercial" | "Informational" {
+  const t = kw.toLowerCase();
+  if (/\b(buy|order|cheap|deal|discount|price|sale|purchase|shop|get)\b/.test(t)) return "Transactional";
+  if (/\b(best|top|review|vs|compare|rated|ranking|recommend)\b/.test(t)) return "Commercial";
+  return "Informational";
+}
+
+function calcOpportunity(vol: number, difficulty: number, trend: "up" | "down"): number {
+  const volScore = Math.min(40, Math.round((Math.log10(Math.max(vol, 1)) / 5) * 40));
+  const diffScore2 = Math.round((1 - difficulty / 100) * 40);
+  const trendBonus = trend === "up" ? 20 : 0;
+  return Math.min(100, volScore + diffScore2 + trendBonus);
+}
+
+function normalizeKW(k: RapidKW, index: number, marketplace = "US"): Keyword {
   const vol = toNum(k.search_volume);
   const cpc = toNum(k.cpc);
   const comp = toNum(k.competition);
   const difficulty = diffScore(vol, comp);
+  const trend: "up" | "down" = difficulty < 55 ? "up" : "down";
+  const intent = detectIntent(k.keyword ?? "");
+  const opportunityScore = calcOpportunity(vol, difficulty, trend);
   return {
     keyword: k.keyword ?? `keyword-${index}`,
     volume: Math.round(vol),
     cpc: `$${cpc.toFixed(2)}`,
     competition: compLabel(comp),
-    trend: difficulty < 55 ? "up" : "down",
+    trend,
     difficulty,
-    platform: "Amazon",
+    platform: `Amazon ${marketplace}`,
+    intent,
+    opportunityScore,
   };
 }
 
@@ -95,7 +120,9 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get("q") ?? "wireless earbuds").trim().slice(0, 120);
-  const cacheKey = query.toLowerCase();
+  const marketplace = (searchParams.get("marketplace") ?? "US").toUpperCase();
+  const countryCode = MARKETPLACE_COUNTRY[marketplace] ?? "US";
+  const cacheKey = `${query.toLowerCase()}|${marketplace}`;
   const cached = kwCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return NextResponse.json({ ...cached.payload, fromCache: true });
 
@@ -103,7 +130,7 @@ export async function GET(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: "RAPIDAPI_KEY not configured" }, { status: 503 });
 
   try {
-    const url = `https://real-time-amazon-data.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&country=US&sort_by=RELEVANCE&product_condition=ALL`;
+    const url = `https://real-time-amazon-data.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&country=${countryCode}&sort_by=RELEVANCE&product_condition=ALL`;
     const res = await fetch(url, {
       headers: { "x-rapidapi-key": apiKey, "x-rapidapi-host": "real-time-amazon-data.p.rapidapi.com" },
       signal: AbortSignal.timeout(12000),
@@ -123,14 +150,19 @@ export async function GET(req: NextRequest) {
       const vol = Math.round(10000 + (p.product_num_ratings ?? 0) * 2.5);
       const cpcRaw = parseFloat((p.product_price ?? "").replace(/[^0-9.]/g, "")) * 0.04 || 0.8;
       const diff = Math.min(100, Math.round(20 + i * 6 + Math.log10(Math.max(vol, 1)) * 4));
+      const trend: "up" | "down" = diff < 55 ? "up" : "down";
+      const intent = detectIntent(words);
+      const opportunityScore = calcOpportunity(vol, diff, trend);
       return {
         keyword: words,
         volume: vol,
         cpc: `$${cpcRaw.toFixed(2)}`,
         competition: compLabel(diff / 100),
-        trend: diff < 55 ? "up" : "down",
+        trend,
         difficulty: diff,
-        platform: "Amazon",
+        platform: `Amazon ${marketplace}`,
+        intent,
+        opportunityScore,
       };
     });
 
