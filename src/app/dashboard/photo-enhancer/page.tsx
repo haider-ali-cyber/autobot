@@ -178,8 +178,13 @@ export default function PhotoAdPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const img = new Image();
-    img.onload = () => { drawAd(canvas, img, adData); };
-    img.src = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      drawAd(canvas, img, adData);
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.onerror = () => URL.revokeObjectURL(objectUrl);
+    img.src = objectUrl;
   }, []);
 
   function selectFile(file: File | undefined) {

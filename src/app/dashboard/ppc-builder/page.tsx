@@ -24,6 +24,7 @@ interface AdGroup {
 
 interface PPCData {
   product: string;
+  market: string;
   campaignName: string;
   campaignType: string;
   budgetPerDay: string;

@@ -70,7 +70,8 @@ export default function TrendPredictorPage() {
     }
   }
 
-  useEffect(() => { fetchTrends(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchTrends(); }, [niche]);
 
   async function fetchInsight(name: string, niche: string, stage: string, growth: string) {
     setInsightLoading(p => ({ ...p, [name]: true }));
