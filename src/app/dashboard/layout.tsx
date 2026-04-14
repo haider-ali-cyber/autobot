@@ -1,5 +1,6 @@
 ﻿"use client";
 import { Sidebar } from "@/components/sidebar";
+import { ChatWidget } from "@/components/chat-widget";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,6 +9,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col overflow-hidden">
         {children}
       </div>
+      <ChatWidget />
     </div>
   );
 }

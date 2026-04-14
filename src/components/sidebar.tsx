@@ -8,7 +8,7 @@ import {
   CheckSquare, ImageIcon, ShoppingCart, ChevronLeft, ChevronRight,
   Settings, HelpCircle, Link2, Inbox, Rocket, Target, Mail,
   Layers, Warehouse, DollarSign, ClipboardList, Globe,
-  Award, Activity, AlertTriangle
+  Award, Activity, AlertTriangle, Headphones
 } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -70,6 +70,7 @@ const sections = [
     items: [
       { href: "/dashboard/integrations", label: "Integrations", icon: Link2 },
       { href: "/dashboard/inbox", label: "Social Inbox", icon: Inbox },
+      { href: "/dashboard/support-admin", label: "Support Inbox", icon: Headphones },
     ],
   },
 ];
